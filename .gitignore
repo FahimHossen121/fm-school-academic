@@ -1,0 +1,63 @@
+### Spring Boot ###
+HELP.md
+
+### Maven ###
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Keep Maven Wrapper files tracked for setup on another PC.
+# This includes .mvn/, mvnw, mvnw.cmd, and any wrapper JAR.
+
+### Java build output ###
+out/
+*.class
+
+### STS / Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Node.js / Tailwind ###
+node_modules/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+### Local environment files ###
+.env
+.env.*
+!.env.example
+
+### Logs ###
+*.log
+
+### Operating system files ###
+.DS_Store
+Thumbs.db
+Desktop.ini
