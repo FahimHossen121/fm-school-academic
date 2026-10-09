@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Student | FM School</title>
+</head>
+<body>
+<h1>Add Student</h1>
+
+<form th:action="@{/students}"
+      th:object="${studentForm}"
+      method="post">
+
+    <p>
+        <label for="name">Name</label>
+        <input id="name" type="text" th:field="*{name}">
+    </p>
+
+    <p>
+        <label for="roll">Roll</label>
+        <input id="roll" type="text" th:field="*{roll}">
+    </p>
+
+    <button type="submit">Save Student</button>
+</form>
+
+<a th:href="@{/students}">Back to students</a>
+</body>
+</html>
