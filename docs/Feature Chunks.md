@@ -173,3 +173,26 @@ Verification: compilation and 14 security/ownership tests passed. Live browser c
 6. A second Teacher cannot enroll the already accepted Student. Remove the first accepted association before switching; then only the newly accepted Teacher has edit authority.
 
 Verification: compilation and 38 security, ownership and workflow tests pass. Tests include credential preservation during edits, unrelated/pending Teacher denial, Student marks-write denial, invalid marks, and single-course enforcement for Student, Teacher and Admin actions. Live database inspection confirmed migration 005 and the unique ACCEPTED index. The existing Teacher's accepted enrollment displayed Edit Student and the form rendered correctly in the browser. The student's manual save/login checks remain to be performed.
+
+## Public signup and profile-first login
+
+- `/signup` lets an anonymous visitor choose Student or Teacher. The matching `/signup/student` or `/signup/teacher` form collects username, password and name, plus Student roll or Teacher course.
+- `SignupForm` carries only permitted signup input; it contains no role, account ID or password-hash field. The controller explicitly allowlists binding fields. Changing a POST body to include `role=ADMIN` cannot create an Admin.
+- `SignupService` permits anonymous registration only. The Student endpoint fixes STUDENT and creates a Student profile; the Teacher endpoint fixes TEACHER and creates a Teacher profile. Both operations hash the password and create account/profile in a single transaction. An invalid or duplicate submission creates neither a new login nor a new profile.
+- No email, institutional identity or other verification is required, following the agreed simplified workflow. Usernames must be unique; names and rolls retain their existing validation. Teacher course and Student roll are required.
+- Registration redirects to `/login?registered` with a success message. It does not silently sign the user in. The user then enters their chosen credentials.
+- `SecurityConfig.roleLoginSuccessHandler` sends Students/Teachers to `/me` and Admin to `/`. It deliberately clears/overrides saved request destinations, so a Student who originally tried an Admin URL still lands on their profile after signing in. Spring's normal session fixation protection stays active.
+- The personal profile page now has My Enrollments and Log out links, so Home is not required as an intermediate step.
+- Public signup retains CSRF protection. Passwords are blanked on redisplayed error forms and are never rendered into password input values.
+
+### Manual test
+
+1. Log out. On the login page click Sign up as a Student.
+2. Enter a new username, name, password (8–64 characters) and digit-only roll. Click Create Account.
+3. Expect the login page with Account created. Sign in using those credentials.
+4. Expect My Profile immediately, with the entered name and roll. Click My Enrollments to continue the enrollment workflow.
+5. Log out and repeat Sign up as a Teacher with a name and course. After signing in expect My Profile with the course already filled in.
+6. Try an already-used username and an invalid/short password: errors must be readable; the password must be blank when the form is redisplayed.
+7. Log in as Admin: expect the management Home, still with exactly Manage Teachers and Manage Students as the main choices.
+
+Verification: compilation and 69 isolated tests passed, including 16 new signup/service/web checks. A further 16 live checks confirmed both public forms, real account/profile creation, duplicate validation, fixed roles despite a forged ADMIN field, profile-first login for Student/Teacher and Admin home redirect. Three disposable accounts created during live verification were removed; existing users were preserved. Live browser inspection confirmed the Student signup form and navigation links render.
