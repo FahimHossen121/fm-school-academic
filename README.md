@@ -66,9 +66,10 @@ desktop/lab application.
 ## Important database note
 
 GitHub stores source code and migrations, not PostgreSQL records or Docker
-volumes. The included seed recreates disposable demo data on another PC. For
-moving real local records, use the backup/restore procedure in the complete
-guide. Do not commit database dumps or private credentials.
+volumes. The included seed recreates disposable demo data on another PC. For lab demonstrations, recreate the sample data using the seed. Moving actual
+records requires a separate database backup/restore procedure; the current
+complete guide focuses on seeded setup. Do not commit database dumps or private
+credentials.
 
 ## Documentation
 
@@ -78,3 +79,5 @@ guide. Do not commit database dumps or private credentials.
 - [Demo accounts and seed](demo/README.md)
 - [Styling guide](docs/Styling.md)
 - [Feature explanations and manual checks](docs/Feature%20Chunks.md)
+
+- [Concise project lab report](docs/Lab%20Report.md)
