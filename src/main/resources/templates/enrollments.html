@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Enrollments | FM School</title></head>
+<body>
+<h1 th:text="${isAdmin ? 'Manage Enrollments' : 'My Enrollments'}"></h1>
+<a th:href="@{/}">Home</a>
+<a th:if="${isAdmin}" th:href="@{/admin/teachers}">Manage Teachers</a>
+<a th:if="${isAdmin}" th:href="@{/admin/students}">Manage Students</a>
+<p th:if="${message}" th:text="${message}" role="status"></p>
+<p th:if="${error}" th:text="${error}" role="alert"></p>
+<p th:unless="${board.ready}">Complete <a th:href="@{/me}">My Profile</a> before sending requests.</p>
+
+<section th:if="${isStudent and board.ready}">
+    <h2>Apply to a Teacher</h2>
+    <form th:action="@{/enrollments/apply}" method="post" th:unless="${#lists.isEmpty(board.teachers)}">
+        <label for="teacherId">Teacher / Course</label>
+        <select id="teacherId" name="teacherId" required>
+            <option value="">Choose a Teacher</option>
+            <option th:each="teacher : ${board.teachers}" th:value="${teacher.id}"
+                    th:text="|${teacher.name} — ${teacher.course}|"></option>
+        </select>
+        <button type="submit">Apply</button>
+    </form>
+    <p th:if="${#lists.isEmpty(board.teachers)}">No courses are available to apply to. If already enrolled, remove that association before applying elsewhere.</p>
+</section>
+
+<section th:if="${isTeacher and board.ready}">
+    <h2>Invite a Student</h2>
+    <form th:action="@{/enrollments/invite}" method="post" th:unless="${#lists.isEmpty(board.students)}">
+        <label for="studentId">Student</label>
+        <select id="studentId" name="studentId" required>
+            <option value="">Choose a Student</option>
+            <option th:each="student : ${board.students}" th:value="${student.id}"
+                    th:text="${student.name}"></option>
+        </select>
+        <button type="submit">Invite</button>
+    </form>
+    <p th:if="${#lists.isEmpty(board.students)}">No available Students. Students need a completed profile and no accepted course.</p>
+</section>
+
+<section th:if="${isAdmin}">
+    <h2>Create an association directly</h2>
+    <form th:action="@{/admin/enrollments}" method="post"
+          th:unless="${#lists.isEmpty(board.teachers) or #lists.isEmpty(board.students)}">
+        <label for="adminTeacherId">Teacher / Course</label>
+        <select id="adminTeacherId" name="teacherId" required>
+            <option value="">Choose a Teacher</option>
+            <option th:each="teacher : ${board.teachers}" th:value="${teacher.id}"
+                    th:text="|${teacher.name} — ${teacher.course}|"></option>
+        </select>
+        <label for="adminStudentId">Student</label>
+        <select id="adminStudentId" name="studentId" required>
+            <option value="">Choose a Student</option>
+            <option th:each="student : ${board.students}" th:value="${student.id}"
+                    th:text="${student.name}"></option>
+        </select>
+        <button type="submit">Associate</button>
+    </form>
+    <p th:if="${#lists.isEmpty(board.teachers) or #lists.isEmpty(board.students)}">
+        No eligible Teacher/Student pair. Profiles must be complete and the Student must have no accepted course.
+    </p>
+</section>
+
+<h2>Requests and associations</h2>
+<p>Pending requests require the recipient's acceptance. They are not course associations yet.</p>
+<p>Each Student may have only one accepted course. Remove it before changing Teachers.</p>
+<p th:if="${#lists.isEmpty(board.rows)}">No requests or associations yet.</p>
+<table th:unless="${#lists.isEmpty(board.rows)}">
+    <thead><tr><th>Teacher</th><th>Course</th><th>Student</th><th>Roll</th>
+        <th>Marks</th><th>Status</th><th>Requested by</th><th>Actions</th></tr></thead>
+    <tbody><tr th:each="row : ${board.rows}">
+        <td th:text="${row.teacher}"></td><td th:text="${row.course}"></td>
+        <td th:text="${row.student}"></td><td th:text="${row.roll}"></td>
+        <td th:text="${row.marks != null ? row.marks : 'Not graded'}"></td>
+        <td th:text="${row.status}"></td><td th:text="${row.requestedBy}"></td>
+        <td>
+            <a th:if="${row.canEdit}"
+               th:href="@{/enrollments/{id}/student/edit(id=${row.id})}">Edit Student</a>
+            <form th:if="${row.canRespond}" th:action="@{/enrollments/{id}/accept(id=${row.id})}" method="post">
+                <button type="submit">Accept</button>
+            </form>
+            <form th:if="${row.canRespond}" th:action="@{/enrollments/{id}/reject(id=${row.id})}" method="post">
+                <button type="submit">Reject</button>
+            </form>
+            <form th:if="${row.canRemove}" th:action="@{/enrollments/{id}/remove(id=${row.id})}" method="post">
+                <button type="submit">Remove</button>
+            </form>
+        </td>
+    </tr></tbody>
+</table>
+</body>
+</html>
