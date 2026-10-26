@@ -1,0 +1,299 @@
+@import "tailwindcss" source(none);
+@source "../templates";
+
+@theme {
+  --font-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --color-school: #254f43;
+}
+
+@layer base {
+  body {
+    @apply bg-[#f6f7f3] text-slate-700 antialiased;
+  }
+  h1 {
+    @apply mb-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl;
+  }
+  h2 {
+    @apply mb-4 text-xl font-semibold tracking-tight text-slate-900;
+  }
+  p {
+    @apply mb-4 leading-relaxed;
+  }
+  a {
+    @apply text-school underline-offset-4 hover:underline;
+  }
+  button,
+  a,
+  input,
+  select {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-school;
+  }
+  button {
+    @apply cursor-pointer;
+  }
+  label {
+    @apply mb-2 block text-sm font-semibold text-slate-700;
+  }
+  input:not([type="hidden"]),
+  select {
+    @apply block min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 transition placeholder:text-slate-400 focus:border-school focus:outline-2 focus:outline-school/15;
+  }
+  input[type="number"] {
+    @apply tabular-nums;
+  }
+  [th\:errors] {
+    @apply mt-2 block text-sm text-red-700;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply mb-4 text-[11px] font-bold tracking-[0.2em];
+  }
+  .brand {
+    @apply flex items-center gap-3 text-lg font-semibold tracking-tight text-white hover:no-underline;
+  }
+  .brand small {
+    @apply mt-0.5 block text-[11px] font-normal tracking-wide text-emerald-100/60;
+  }
+  .brand-mark {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lime-200 text-xl font-bold text-[#172c28];
+  }
+  .brand-mark span {
+    @apply text-school;
+  }
+  .sidebar {
+    @apply flex flex-col gap-5 bg-[#172c28] px-5 py-5 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:px-6 lg:py-8;
+  }
+  .nav-caption {
+    @apply mb-0 mt-8 hidden text-[10px] font-semibold tracking-[0.2em] text-emerald-100/40 lg:block;
+  }
+  .sidebar nav {
+    @apply flex flex-wrap gap-2 lg:flex-col;
+  }
+  .sidebar nav a {
+    @apply flex items-center justify-between gap-3 rounded-xl px-3 py-3 text-sm text-emerald-50/75 transition hover:bg-white/10 hover:text-white hover:no-underline;
+  }
+  .sidebar nav a.active {
+    @apply bg-lime-200 text-[#172c28] font-semibold;
+  }
+  .sidebar nav a span {
+    @apply hidden lg:inline;
+  }
+  .nav-account {
+    @apply flex items-center gap-3 border-t border-white/10 pt-5 text-sm lg:mt-auto;
+  }
+  .nav-account small {
+    @apply text-[10px] tracking-widest text-emerald-100/50;
+  }
+  .avatar {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 font-semibold text-lime-200;
+  }
+  .nav-account form {
+    @apply ml-auto;
+  }
+  .logout {
+    @apply h-10 w-10 rounded-lg text-xl text-emerald-100/70 hover:bg-white/10 hover:text-white;
+  }
+  .workspace {
+    @apply px-5 py-8 sm:px-10 lg:ml-64 lg:px-12 lg:py-12;
+  }
+  .page-content {
+    @apply mx-auto max-w-6xl;
+  }
+  .page-top {
+    @apply mb-8 border-b border-slate-200 pb-6;
+  }
+  .page-top p {
+    @apply mb-0 max-w-2xl text-sm text-slate-500;
+  }
+  .page-top .eyebrow {
+    @apply mb-3 text-school;
+  }
+  .panel {
+    @apply mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8;
+  }
+  .form-panel {
+    @apply max-w-2xl;
+  }
+  .field-form > p {
+    @apply mb-5;
+  }
+  .field-form > button,
+  .primary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-school px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#193b31] hover:no-underline;
+  }
+  .field-form > ul {
+    @apply mb-6 space-y-1 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800;
+  }
+  .field-form span[th\:errors] {
+    @apply text-red-700;
+  }
+  .secondary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:no-underline;
+  }
+  .toolbar {
+    @apply mb-6 flex flex-wrap items-center gap-3;
+  }
+  .toolbar > a {
+    @apply inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50 hover:no-underline;
+  }
+  .toolbar > a:last-child {
+    @apply border-school bg-school text-white hover:bg-[#193b31];
+  }
+  .table-wrap {
+    @apply mb-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+  table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  thead {
+    @apply bg-[#edf1ec] text-[11px] uppercase tracking-wider text-slate-500;
+  }
+  th {
+    @apply whitespace-nowrap px-5 py-4 font-semibold;
+  }
+  td {
+    @apply border-t border-slate-100 px-5 py-5 align-middle;
+  }
+  tbody tr {
+    @apply hover:bg-slate-50/80;
+  }
+  td:first-child {
+    @apply font-semibold text-slate-900;
+  }
+  td:last-child {
+    @apply min-w-36;
+  }
+  .row-actions {
+    @apply flex flex-wrap items-center gap-3;
+  }
+  .row-actions a,
+  .row-actions button {
+    @apply text-xs font-semibold;
+  }
+  .row-actions button {
+    @apply min-h-9 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-100;
+  }
+  .row-actions button.danger {
+    @apply border-red-100 text-red-700 hover:bg-red-50;
+  }
+  .row-actions button.accept {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100;
+  }
+  .badge {
+    @apply inline-flex rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-slate-600;
+  }
+  .badge-accepted {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+  .badge-pending {
+    @apply bg-amber-100 text-amber-900;
+  }
+  .badge-rejected {
+    @apply bg-red-50 text-red-700;
+  }
+  .notice,
+  [role="status"] {
+    @apply mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900;
+  }
+  [role="alert"] {
+    @apply mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800;
+  }
+  .empty-state {
+    @apply rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500;
+  }
+  .danger-panel {
+    @apply mt-10 max-w-2xl rounded-2xl border border-red-200 bg-white p-6;
+  }
+  .danger-panel h2 {
+    @apply text-base text-red-800;
+  }
+  .danger-panel p {
+    @apply text-sm text-slate-500;
+  }
+  .danger-button {
+    @apply inline-flex min-h-11 items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:bg-red-100;
+  }
+  .section-heading {
+    @apply mb-2 mt-10;
+  }
+  .helper {
+    @apply text-sm text-slate-500;
+  }
+  .auth-layout {
+    @apply min-h-screen lg:grid lg:grid-cols-[0.9fr_1.1fr];
+  }
+  .auth-story {
+    @apply hidden min-h-screen flex-col bg-[#172c28] px-12 py-10 lg:flex xl:px-20;
+  }
+  .auth-story h2 {
+    @apply mb-6 text-5xl font-medium leading-[1.12] tracking-tight text-white xl:text-6xl;
+  }
+  .auth-main {
+    @apply flex min-h-screen items-center justify-center px-6 py-10 sm:px-12;
+  }
+  .auth-card {
+    @apply w-full max-w-md;
+  }
+  .auth-card > .brand {
+    @apply mb-10 text-slate-900 lg:hidden;
+  }
+  .auth-card > .brand small {
+    @apply text-slate-500;
+  }
+  .auth-card h1 {
+    @apply text-3xl sm:text-4xl;
+  }
+  .auth-card .field-form {
+    @apply mt-8;
+  }
+  .auth-card .field-form > button {
+    @apply mt-2 w-full;
+  }
+  .auth-links {
+    @apply mt-8 border-t border-slate-200 pt-6 text-sm;
+  }
+  .auth-links a {
+    @apply font-semibold;
+  }
+  .role-card {
+    @apply mb-4 block rounded-2xl border border-slate-200 bg-white p-6 transition hover:border-school hover:shadow-md hover:no-underline;
+  }
+  .role-card strong {
+    @apply mb-2 flex justify-between text-lg text-slate-900;
+  }
+  .role-card span {
+    @apply block text-sm leading-relaxed text-slate-500;
+  }
+  .school-art {
+    @apply relative mt-12 h-52 max-w-sm;
+  }
+  .art-circle {
+    @apply absolute right-1 top-0 h-44 w-44 rounded-full border border-lime-200/30;
+  }
+  .art-card {
+    @apply absolute left-0 top-4 w-64 -rotate-6 rounded-2xl bg-[#e6edda] p-6 text-[#172c28] shadow-xl;
+  }
+  .art-card > span {
+    @apply text-[9px] font-bold tracking-[0.22em];
+  }
+  .art-card strong {
+    @apply text-lg font-semibold;
+  }
+  .art-lines {
+    @apply my-5 h-10 w-40 border-y border-school/20;
+  }
+  .art-label {
+    @apply absolute bottom-0 right-0 rotate-3 rounded-lg bg-lime-200 px-4 py-3 text-xs font-semibold text-[#172c28];
+  }
+  .overview-card {
+    @apply block rounded-2xl border border-slate-200 bg-white p-8 transition hover:border-school hover:shadow-md hover:no-underline;
+  }
+  .overview-card h2 {
+    @apply mt-6;
+  }
+  .overview-card p {
+    @apply mb-0 text-sm text-slate-500;
+  }
+}

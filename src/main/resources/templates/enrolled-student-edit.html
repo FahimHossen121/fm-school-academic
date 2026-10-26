@@ -1,22 +1,67 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><title>Edit Enrolled Student | FM School</title></head>
-<body>
-<h1>Edit Enrolled Student</h1>
-<p>Course: <span th:text="${edit.course}"></span></p>
-<p>Login username: <strong th:text="${edit.username}"></strong>.
-    Changing this profile does not change the Student's username or password.</p>
-<form th:action="@{/enrollments/{id}/student(id=${edit.enrollmentId})}"
-      th:object="${studentForm}" method="post">
-    <ul th:if="${#fields.hasAnyErrors()}">
-        <li th:each="error : ${#fields.allErrors()}" th:text="${error}"></li>
-    </ul>
-    <p><label for="name">Name</label><input id="name" type="text" th:field="*{name}"></p>
-    <p><label for="roll">Roll</label><input id="roll" type="text" th:field="*{roll}"></p>
-    <p><label for="marks">Marks (0–100; blank means not graded)</label>
-        <input id="marks" type="number" min="0" max="100" step="0.01" th:field="*{marks}"></p>
-    <button type="submit">Save Student</button>
-</form>
-<a th:href="@{/enrollments}">Back to enrollments</a>
-</body>
+  <head
+    th:replace="~{fragments/layout :: head('Enrolled Student Edit')}"
+  ></head>
+  <body>
+    <a class="sr-only focus:not-sr-only" href="#main-content"
+      >Skip to content</a
+    >
+    <aside th:replace="~{fragments/layout :: navigation}"></aside>
+    <main id="main-content" class="workspace">
+      <div class="page-content">
+        <header class="page-top">
+          <p class="eyebrow">FM SCHOOL / WORKSPACE</p>
+          <h1>Edit Enrolled Student</h1>
+          <p>Update the student profile and record their progress.</p>
+        </header>
+        <p>Course: <span th:text="${edit.course}"></span></p>
+        <p>
+          Login username: <strong th:text="${edit.username}"></strong>. Changing
+          this profile does not change the Student's username or password.
+        </p>
+        <section class="panel form-panel">
+          <form
+            th:action="@{/enrollments/{id}/student(id=${edit.enrollmentId})}"
+            th:object="${studentForm}"
+            method="post"
+            class="field-form"
+          >
+            <ul role="alert" th:if="${#fields.hasAnyErrors()}">
+              <li
+                th:each="error : ${#fields.allErrors()}"
+                th:text="${error}"
+              ></li>
+            </ul>
+            <p>
+              <label for="name">Name</label
+              ><input id="name" type="text" th:field="*{name}" />
+            </p>
+            <p>
+              <label for="roll">Roll</label
+              ><input
+                id="roll"
+                inputmode="numeric"
+                type="text"
+                th:field="*{roll}"
+              />
+            </p>
+            <p>
+              <label for="marks">Marks (0–100; blank means not graded)</label>
+              <input
+                id="marks"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                th:field="*{marks}"
+              />
+            </p>
+            <button type="submit">Save Student</button>
+          </form>
+        </section>
+        <a th:href="@{/enrollments}">Back to enrollments</a>
+      </div>
+    </main>
+  </body>
 </html>

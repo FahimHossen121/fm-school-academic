@@ -1,24 +1,69 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><title>Create Account | FM School</title></head>
-<body>
-<h1>Create Teacher or Student Account</h1>
-<form th:action="@{/admin/accounts}" th:object="${accountForm}" method="post">
-    <ul th:if="${#fields.hasAnyErrors()}">
-        <li th:each="error : ${#fields.allErrors()}" th:text="${error}"></li>
-    </ul>
-    <p><label for="username">Username</label>
-        <input id="username" type="text" th:field="*{username}" autocomplete="off"></p>
-    <p><label for="password">Password (8–64 characters)</label>
-        <input id="password" name="password" type="password" autocomplete="new-password"></p>
-    <p><label for="role">Role</label>
-        <select id="role" th:field="*{role}">
-            <option value="">Choose a role</option>
-            <option th:each="role : ${availableRoles}" th:value="${role}" th:text="${role}"></option>
-        </select></p>
-    <button type="submit">Create Account</button>
-</form>
-<a th:href="@{/admin/accounts}">Back to accounts</a>
-<p>After creation, use Manage Profile to enter personal details, or let the user complete My Profile.</p>
-</body>
+  <head th:replace="~{fragments/layout :: head('Account Form')}"></head>
+  <body>
+    <a class="sr-only focus:not-sr-only" href="#main-content"
+      >Skip to content</a
+    >
+    <aside th:replace="~{fragments/layout :: navigation}"></aside>
+    <main id="main-content" class="workspace">
+      <div class="page-content">
+        <header class="page-top">
+          <p class="eyebrow">FM SCHOOL / WORKSPACE</p>
+          <h1>Create Teacher or Student Account</h1>
+          <p>Create a login for a member of your school.</p>
+        </header>
+        <section class="panel form-panel">
+          <form
+            th:action="@{/admin/accounts}"
+            th:object="${accountForm}"
+            method="post"
+            class="field-form"
+          >
+            <ul role="alert" th:if="${#fields.hasAnyErrors()}">
+              <li
+                th:each="error : ${#fields.allErrors()}"
+                th:text="${error}"
+              ></li>
+            </ul>
+            <p>
+              <label for="username">Username</label>
+              <input
+                id="username"
+                type="text"
+                th:field="*{username}"
+                autocomplete="off"
+              />
+            </p>
+            <p>
+              <label for="password">Password (8–64 characters)</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+              />
+            </p>
+            <p>
+              <label for="role">Role</label>
+              <select id="role" th:field="*{role}">
+                <option value="">Choose a role</option>
+                <option
+                  th:each="role : ${availableRoles}"
+                  th:value="${role}"
+                  th:text="${role}"
+                ></option>
+              </select>
+            </p>
+            <button type="submit">Create Account</button>
+          </form>
+        </section>
+        <a th:href="@{/admin/accounts}">Back to accounts</a>
+        <p>
+          After creation, use Manage Profile to enter personal details, or let
+          the user complete My Profile.
+        </p>
+      </div>
+    </main>
+  </body>
 </html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head th:fragment="head(title)">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#172c28" />
+    <title th:text="${title} + ' | FM School'">FM School</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" />
+  </head>
+  <body>
+    <a th:fragment="brand" class="brand" th:href="@{/}">
+      <span class="brand-mark" aria-hidden="true">fm<span>.</span></span>
+      <span>FM School<small>A place to grow.</small></span>
+    </a>
+    <aside
+      th:fragment="navigation"
+      class="sidebar"
+      aria-label="Main navigation"
+    >
+      <a th:replace="~{fragments/layout :: brand}"></a>
+      <p class="nav-caption">YOUR WORKSPACE</p>
+      <nav>
+        <a th:href="@{/}" th:classappend="${viewer.path == '/'} ? 'active'"
+          >Overview <span aria-hidden="true">↗</span></a
+        >
+        <th:block th:if="${viewer.admin}">
+          <a
+            th:href="@{/admin/teachers}"
+            th:classappend="${#strings.startsWith(viewer.path, '/admin/teachers')} ? 'active'"
+            >Manage Teachers <span aria-hidden="true">↗</span></a
+          >
+          <a
+            th:href="@{/admin/students}"
+            th:classappend="${#strings.startsWith(viewer.path, '/admin/students')} ? 'active'"
+            >Manage Students <span aria-hidden="true">↗</span></a
+          >
+        </th:block>
+        <th:block th:unless="${viewer.admin}">
+          <a
+            th:href="@{/me}"
+            th:classappend="${viewer.path == '/me'} ? 'active'"
+            >My Profile <span aria-hidden="true">↗</span></a
+          >
+          <a
+            th:href="@{/enrollments}"
+            th:classappend="${#strings.startsWith(viewer.path, '/enrollments')} ? 'active'"
+            >My Enrollments <span aria-hidden="true">↗</span></a
+          >
+        </th:block>
+      </nav>
+      <div class="nav-account">
+        <div
+          class="avatar"
+          aria-hidden="true"
+          th:text="${#strings.toUpperCase(#strings.substring(viewer.username,0,1))}"
+        >
+          F
+        </div>
+        <div class="min-w-0">
+          <strong class="block truncate" th:text="${viewer.username}"></strong
+          ><small th:text="${viewer.role}"></small>
+        </div>
+        <form th:action="@{/logout}" method="post">
+          <button
+            type="submit"
+            class="logout"
+            aria-label="Log out"
+            title="Log out"
+          >
+            ↪
+          </button>
+        </form>
+      </div>
+    </aside>
+    <section th:fragment="authStory" class="auth-story">
+      <a th:replace="~{fragments/layout :: brand}"></a>
+      <div class="my-auto py-12">
+        <p class="eyebrow text-lime-200">LEARNING, CONNECTED.</p>
+        <h2>
+          Your next chapter<br />starts here<span class="text-lime-200">.</span>
+        </h2>
+        <p class="max-w-sm text-lg leading-relaxed text-emerald-100/70">
+          A shared space for students and teachers. Find your course, make
+          connections, and keep growing.
+        </p>
+        <div class="school-art" aria-hidden="true">
+          <div class="art-circle"></div>
+          <div class="art-card">
+            <span>FM SCHOOL</span>
+            <div class="art-lines"></div>
+            <strong>Learn. Connect. Grow.</strong>
+          </div>
+          <div class="art-label">One school. Many possibilities. ↗</div>
+        </div>
+      </div>
+      <p class="text-xs tracking-wider text-emerald-100/50">
+        STUDENTS &amp; TEACHERS, TOGETHER.
+      </p>
+    </section>
+  </body>
+</html>

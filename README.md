@@ -25,7 +25,7 @@ A school management project for SEPM lab, developed step by step to learn Spring
 - Database-backed accounts, hashed passwords, login/logout and Admin-only management are implemented and verified through automated and live checks.
 - Teacher/Student personal profiles and account deletion are implemented in chunk 2B.
 - Chunk 3 implements applications, invitations, recipient-only acceptance/rejection, association removal and Admin control. The associated Teacher may edit Student name/roll and course marks (0–100). Attendance is out of scope.
-- Tailwind compilation is not configured yet.
+- Thymeleaf pages use locally compiled Tailwind, shared navigation, responsive forms/tables, and enrollment status badges. See [the styling guide](docs/Styling.md) for CSS build/watch commands.
 - Public Student/Teacher signup creates a login and complete personal profile together. Students and Teachers land on `/me` after login; Admin lands on `/`.
 
 ### Login after chunk 2A

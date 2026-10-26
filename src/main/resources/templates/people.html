@@ -1,38 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><title th:text="${title}"></title></head>
-<body>
-<h1 th:text="${title}"></h1>
-<a th:href="@{/}">Home</a>
-<a th:href="@{/admin/enrollments}">Manage Enrollments</a>
-<a th:href="@{${newPath}}" th:text="${isStudent ? 'Add Student' : 'Add Teacher'}"></a>
-<p th:if="${param.saved}" role="status">Profile saved.</p>
-<p th:if="${#lists.isEmpty(people)}">No records yet.</p>
-<table th:unless="${#lists.isEmpty(people)}">
-    <thead><tr>
-        <th>Record ID</th><th>Username</th><th>Name</th>
-        <th th:text="${isStudent ? 'Roll' : 'Course'}"></th><th>Actions</th>
-    </tr></thead>
-    <tbody><tr th:each="person : ${people}">
-        <td th:text="${person.recordId != null ? person.recordId : 'Not completed'}"></td>
-        <td th:text="${person.username != null ? person.username : 'No login linked'}"></td>
-        <td th:text="${person.name}"></td>
-        <td th:text="${person.detail}"></td>
-        <td>
-            <a th:if="${person.accountId != null}"
-               th:href="@{/admin/accounts/{id}/profile(id=${person.accountId})}">Edit</a>
-            <a th:if="${person.accountId == null}"
-               th:href="@{/students/{id}/edit(id=${person.recordId})}">Edit</a>
-            <form th:if="${person.accountId != null}"
-                  th:action="@{/admin/accounts/{id}/delete(id=${person.accountId})}" method="post">
-                <button type="submit">Delete</button>
-            </form>
-            <form th:if="${person.accountId == null}"
-                  th:action="@{/students/{id}/delete(id=${person.recordId})}" method="post">
-                <button type="submit">Delete</button>
-            </form>
-        </td>
-    </tr></tbody>
-</table>
-</body>
+  <head th:replace="~{fragments/layout :: head('School Community')}"></head>
+  <body>
+    <a class="sr-only focus:not-sr-only" href="#main-content"
+      >Skip to content</a
+    >
+    <aside th:replace="~{fragments/layout :: navigation}"></aside>
+    <main id="main-content" class="workspace">
+      <div class="page-content">
+        <header class="page-top">
+          <p class="eyebrow">FM SCHOOL / WORKSPACE</p>
+          <h1 th:text="${title}"></h1>
+          <p>Keep your school community organized and up to date.</p>
+        </header>
+        <div class="toolbar">
+          <a th:href="@{/}">Home</a>
+          <a th:href="@{/admin/enrollments}">Manage Enrollments</a>
+          <a
+            th:href="@{${newPath}}"
+            th:text="${isStudent ? 'Add Student' : 'Add Teacher'}"
+          ></a>
+        </div>
+        <p th:if="${param.saved}" role="status">Profile saved.</p>
+        <p class="empty-state" th:if="${#lists.isEmpty(people)}">
+          No records yet.
+        </p>
+        <div class="table-wrap" th:unless="${#lists.isEmpty(people)}">
+          <table>
+            <thead>
+              <tr>
+                <th>Record ID</th>
+                <th>Username</th>
+                <th>Name</th>
+                <th th:text="${isStudent ? 'Roll' : 'Course'}"></th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="person : ${people}">
+                <td
+                  th:text="${person.recordId != null ? person.recordId : 'Not completed'}"
+                ></td>
+                <td
+                  th:text="${person.username != null ? person.username : 'No login linked'}"
+                ></td>
+                <td th:text="${person.name}"></td>
+                <td th:text="${person.detail}"></td>
+                <td>
+                  <div class="row-actions">
+                    <a
+                      th:if="${person.accountId != null}"
+                      th:href="@{/admin/accounts/{id}/profile(id=${person.accountId})}"
+                      >Edit</a
+                    >
+                    <a
+                      th:if="${person.accountId == null}"
+                      th:href="@{/students/{id}/edit(id=${person.recordId})}"
+                      >Edit</a
+                    >
+                    <form
+                      th:if="${person.accountId != null}"
+                      th:action="@{/admin/accounts/{id}/delete(id=${person.accountId})}"
+                      method="post"
+                    >
+                      <button class="danger" type="submit">Delete</button>
+                    </form>
+                    <form
+                      th:if="${person.accountId == null}"
+                      th:action="@{/students/{id}/delete(id=${person.recordId})}"
+                      method="post"
+                    >
+                      <button class="danger" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </body>
 </html>

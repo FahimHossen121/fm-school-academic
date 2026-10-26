@@ -1,16 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><title>FM School</title></head>
-<body>
-<h1>FM School</h1>
-<p>Signed in as <strong th:text="${username}"></strong></p>
-<p th:text="${roles}"></p>
-<nav th:if="${isAdmin}">
-    <a th:href="@{/admin/teachers}">Manage Teachers</a>
-    <a th:href="@{/admin/students}">Manage Students</a>
-</nav>
-<p th:unless="${isAdmin}"><a th:href="@{/me}">My Profile</a></p>
-<p th:unless="${isAdmin}"><a th:href="@{/enrollments}">My Enrollments</a></p>
-<form th:action="@{/logout}" method="post"><button type="submit">Log out</button></form>
-</body>
+  <head th:replace="~{fragments/layout :: head('Overview')}"></head>
+  <body>
+    <aside th:replace="~{fragments/layout :: navigation}"></aside>
+    <main class="workspace">
+      <div class="page-content">
+        <header class="page-top">
+          <p class="eyebrow">FM SCHOOL / OVERVIEW</p>
+          <h1>Good to see you, <span th:text="${username}"></span>.</h1>
+          <p>
+            Welcome to your school workspace. Everything you need, a little
+            closer.
+          </p>
+        </header>
+        <section
+          class="mb-8 overflow-hidden rounded-2xl bg-[#e6edda] p-8 sm:p-10"
+        >
+          <p class="eyebrow text-school">A PLACE TO GROW</p>
+          <h2 class="max-w-xl text-3xl sm:text-4xl">
+            Small connections.<br />Meaningful progress.
+          </h2>
+          <p
+            class="mb-0 max-w-xl text-sm text-school/80"
+            th:text="${isAdmin ? 'Keep students, teachers, and their courses connected. Start with the community you want to manage.' : 'Keep your profile up to date and manage your course connections from one simple space.'}"
+          ></p>
+        </section>
+        <div class="grid gap-5 sm:grid-cols-2" th:if="${isAdmin}">
+          <a class="overview-card" th:href="@{/admin/teachers}"
+            ><span class="badge">01 / TEACHERS</span>
+            <h2>Manage Teachers ↗</h2>
+            <p>Create accounts, update profiles, and organize courses.</p></a
+          >
+          <a class="overview-card" th:href="@{/admin/students}"
+            ><span class="badge">02 / STUDENTS</span>
+            <h2>Manage Students ↗</h2>
+            <p>View your students and keep their information current.</p></a
+          >
+        </div>
+        <div class="grid gap-5 sm:grid-cols-2" th:unless="${isAdmin}">
+          <a class="overview-card" th:href="@{/me}"
+            ><span class="badge">01 / ABOUT YOU</span>
+            <h2>My Profile ↗</h2>
+            <p>Your personal details and account settings.</p></a
+          >
+          <a class="overview-card" th:href="@{/enrollments}"
+            ><span class="badge">02 / CONNECTIONS</span>
+            <h2>My Enrollments ↗</h2>
+            <p>Your courses, requests, and invitations.</p></a
+          >
+        </div>
+      </div>
+    </main>
+  </body>
 </html>

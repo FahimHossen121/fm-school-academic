@@ -1,41 +1,54 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Students | FM School</title>
-</head>
-<body>
-<h1>Students</h1>
-<a th:href="@{/}">Home</a>
-<a th:href="@{/students/new}">Add Student</a>
+  <head th:replace="~{fragments/layout :: head('Students')}"></head>
+  <body>
+    <a class="sr-only focus:not-sr-only" href="#main-content"
+      >Skip to content</a
+    >
+    <aside th:replace="~{fragments/layout :: navigation}"></aside>
+    <main id="main-content" class="workspace">
+      <div class="page-content">
+        <header class="page-top">
+          <p class="eyebrow">FM SCHOOL / WORKSPACE</p>
+          <h1>Students</h1>
+          <p>Your school’s student records.</p>
+        </header>
+        <a th:href="@{/}">Home</a>
+        <a th:href="@{/students/new}">Add Student</a>
 
-<p th:if="${#lists.isEmpty(students)}">
-    No students have been added yet.
-</p>
+        <p th:if="${#lists.isEmpty(students)}">
+          No students have been added yet.
+        </p>
 
-<table th:unless="${#lists.isEmpty(students)}">
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Roll</th>
-        <th>Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="student : ${students}">
-        <td th:text="${student.id}"></td>
-        <td th:text="${student.name}"></td>
-        <td th:text="${student.roll}"></td>
-        <td>
-            <a th:href="@{/students/{id}/edit(id=${student.id})}">Edit</a>
-            <form th:action="@{/students/{id}/delete(id=${student.id})}"
-                  method="post">
-                <button type="submit">Delete</button>
-            </form>
-        </td>
-    </tr>
-    </tbody>
-</table>
-</body>
+        <div class="table-wrap">
+          <table th:unless="${#lists.isEmpty(students)}">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Roll</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="student : ${students}">
+                <td th:text="${student.id}"></td>
+                <td th:text="${student.name}"></td>
+                <td th:text="${student.roll}"></td>
+                <td>
+                  <a th:href="@{/students/{id}/edit(id=${student.id})}">Edit</a>
+                  <form
+                    th:action="@{/students/{id}/delete(id=${student.id})}"
+                    method="post"
+                  >
+                    <button class="danger" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </body>
 </html>

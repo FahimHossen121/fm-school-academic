@@ -1,32 +1,58 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sign in | FM School</title>
-</head>
-<body>
-<main>
-    <h1>Sign in to FM School</h1>
-    <p th:if="${param.error}" role="alert">Invalid username or password.</p>
-    <p th:if="${param.logout}">You have been logged out.</p>
-    <p th:if="${param.deleted}">Your account has been deleted.</p>
-    <p th:if="${param.registered}" role="status">Account created. Sign in with your new username and password.</p>
-    <form th:action="@{/login}" method="post">
-        <p>
-            <label for="username">Username</label>
-            <input id="username" name="username" type="text"
-                   autocomplete="username" required autofocus>
-        </p>
-        <p>
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password"
-                   autocomplete="current-password" required>
-        </p>
-        <button type="submit">Sign in</button>
-    </form>
-    <p><a th:href="@{/signup/student}">Sign up as a Student</a></p>
-    <p><a th:href="@{/signup/teacher}">Sign up as a Teacher</a></p>
-</main>
-</body>
+  <head th:replace="~{fragments/layout :: head('Login')}"></head>
+  <body>
+    <div class="auth-layout">
+      <section th:replace="~{fragments/layout :: authStory}"></section>
+      <main class="auth-main">
+        <div class="auth-card">
+          <a th:replace="~{fragments/layout :: brand}"></a>
+          <p class="eyebrow text-school">YOUR SCHOOL, SIMPLIFIED</p>
+          <h1>Sign in to FM School</h1>
+          <p class="helper">Welcome back. Sign in to your school workspace.</p>
+          <p th:if="${param.error}" role="alert">
+            Invalid username or password.
+          </p>
+          <p class="notice" th:if="${param.logout}">
+            You have been logged out.
+          </p>
+          <p class="notice" th:if="${param.deleted}">
+            Your account has been deleted.
+          </p>
+          <p th:if="${param.registered}" role="status">
+            Account created. Sign in with your new username and password.
+          </p>
+          <form th:action="@{/login}" method="post">
+            <p>
+              <label for="username">Username</label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autocomplete="username"
+                required
+                autofocus
+              />
+            </p>
+            <p>
+              <label for="password">Password</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+              />
+            </p>
+            <button type="submit">Sign in</button>
+          </form>
+          <div class="auth-links">
+            <p class="helper">New to FM School? Join your community.</p>
+            <p><a th:href="@{/signup/student}">Sign up as a Student</a></p>
+            <p><a th:href="@{/signup/teacher}">Sign up as a Teacher</a></p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
 </html>

@@ -9,10 +9,10 @@ We now work one feature chunk at a time: code and explanation first, student tes
 1. Finish Student HTML editing and deletion.
 2. Persist accounts; implement login, logout, password hashing and Admin/Teacher/Student permissions.
 3. Add each Teacher's course and Student/Teacher enrollment requests with recipient acceptance.
-4. Complete the remaining REST endpoints and validation/error contracts. Marks and attendance were removed from scope on 26 October 2026.
+4. Complete the remaining REST endpoints and validation/error contracts. Attendance is excluded; marks were reintroduced for accepted enrollments.
 5. Complete JSON CRUD, compiled Tailwind styling, application Docker packaging, tests and fresh-PC documentation.
 
-**API chunk completed in code:** Student/Teacher JSON CRUD, own-profile API, session/logout, CSRF endpoint, and enrollment/marks API now reuse the existing business and ownership rules. See [JSON API Guide.md](JSON%20API%20Guide.md). API responses use DTOs, and errors use JSON status envelopes. Account + profile creation is transactional. Verification: 53 isolated tests and 17 live API checks with disposable records passed. Tailwind, application Docker packaging, and final fresh-PC QA remain.
+**API chunk completed in code:** Student/Teacher JSON CRUD, own-profile API, session/logout, CSRF endpoint, and enrollment/marks API now reuse the existing business and ownership rules. See [JSON API Guide.md](JSON%20API%20Guide.md). API responses use DTOs, and errors use JSON status envelopes. Account + profile creation is transactional. Verification: 53 isolated tests and 17 live API checks with disposable records passed. Application Docker packaging and final fresh-PC QA remain. Compiled Tailwind styling is now implemented; see the styling checkpoint below.
 
 Role and ownership restrictions belong in the backend, including requests submitted directly rather than through the UI. They are not implemented in chunk 1.
 
@@ -196,3 +196,20 @@ Verification: compilation and 38 security, ownership and workflow tests pass. Te
 7. Log in as Admin: expect the management Home, still with exactly Manage Teachers and Manage Students as the main choices.
 
 Verification: compilation and 69 isolated tests passed, including 16 new signup/service/web checks. A further 16 live checks confirmed both public forms, real account/profile creation, duplicate validation, fixed roles despite a forged ADMIN field, profile-first login for Student/Teacher and Admin home redirect. Three disposable accounts created during live verification were removed; existing users were preserved. Live browser inspection confirmed the Student signup form and navigation links render.
+
+
+## Styling checkpoint: compiled Tailwind + Thymeleaf
+
+All 14 existing templates now share a compiled Tailwind stylesheet. Auth pages
+use a branded split layout on desktop; signed-in pages share role-aware
+navigation, consistent forms, management tables and enrollment badges. Forms
+retain their existing actions, DTO bindings, validation and CSRF integration.
+No database migrations or permission changes were required. LayoutAdvice only
+supplies display information.
+
+Run `npm.cmd ci`, then `npm.cmd run css:build` to rebuild, or `npm.cmd run css:watch`
+while editing. Generated CSS is committed so normal lab startup needs no Node
+installation. Read [Styling.md](Styling.md) for file responsibilities and manual
+checks. CSS compilation, 69 existing Java tests, and 19 live page render checks
+passed; signup, teacher profile/enrollments/editing and responsive widths were
+reviewed in the browser. Student-led end-to-end testing remains useful.
