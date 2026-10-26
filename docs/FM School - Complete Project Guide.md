@@ -53,7 +53,6 @@ flowchart LR
     Browser[Browser :8080] --> Java[Spring Boot on Windows / IntelliJ]
     Java --> Driver[PostgreSQL JDBC driver]
     Driver --> DB[PostgreSQL in Docker :5432]
-    DB --> Volume[Named Docker volume]
     Node[Node + Tailwind CLI during styling] --> CSS[Compiled CSS served by Spring Boot]
     CSS --> Browser
 ```
@@ -70,13 +69,16 @@ flowchart LR
 | Spring Data JPA / Hibernate | Work with entities and repositories; map objects to tables |
 | PostgreSQL JDBC driver | Connect Java to PostgreSQL; still needed when PostgreSQL runs in Docker |
 | PostgreSQL 18.6 | Store records in the database |
-| Docker Compose | Start the configured PostgreSQL container and volume |
+| Docker Compose | Start the configured local PostgreSQL container |
 | Liquibase | Apply versioned database schema changes |
 | Lombok | Generate getters/setters during Java compilation |
 | Tailwind 4.3.3 | Compile styling into a local CSS file |
 | Git / GitHub | Local history / shared remote source history |
 
-**Only PostgreSQL is containerized in the current Compose file.** Java runs on the host. The repository currently has no application Dockerfile. GitHub contains source, migrations and compiled CSS, not your existing database volume or private Admin password.
+**Only PostgreSQL is containerized in the current Compose file.** Java runs on
+the host. The repository currently has no application Dockerfile. The lab
+workflow intentionally creates the database schema and demo records again on
+each PC instead of transferring a personal database.
 
 The browser talks to Spring Boot on port **8080**. Java talks to PostgreSQL through host port **5432**. They are two different services. The current mapping is `127.0.0.1:5432:5432`: local host port, then container port. We discussed 5433 earlier; the committed configuration currently uses 5432.
 
@@ -150,7 +152,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
 `FM_ADMIN_PASSWORD` remains available for a private non-demo database, but it
-is not needed for the lab seed. Never commit a real password or database dump.
+is not needed for the lab seed. Never commit a real password.
 
 ### 3.5 Start PostgreSQL
 
@@ -193,49 +195,23 @@ On startup, Liquibase applies migrations, Hibernate validates the schema and the
 
 Open [http://localhost:8080/login](http://localhost:8080/login). The compiled stylesheet is already in Git, so the page should be styled immediately.
 
-### 3.7 Why the Admin login changes between folders or PCs
+### 3.7 Why the Admin login is predictable on every lab PC
 
-The project files and the database are separate. GitHub transfers Java code, templates and migrations; it does **not** transfer PostgreSQL records or the Docker named volume. Also, Docker Compose normally prefixes the named volume with the Compose project name, which is commonly based on the folder name. Therefore, running a copy from another folder can use a different database even on the same PC.
+Each lab PC starts with its own local PostgreSQL container. That is expected:
+the repository contains the application code and migrations, while the seed
+creates the demo records locally. After the first successful application
+startup, `run-demo.ps1` loads `demo/seed-demo-data.sql` and ensures:
 
-`AdminBootstrap` creates `admin` only when the selected database has no Admin. It prints a generated password only during that first creation. Setting `FM_ADMIN_PASSWORD` later does not reset an existing Admin password. The private `admin-login.local.txt` file is useful only for the database for which that password was created; do not copy it to GitHub or assume it works against a fresh database.
-
-For a **fresh lab demo database**, run the seed after the first successful
-startup. It resets the demo Admin password to `12345678` and leaves
-Teacher/Student passwords and profiles unchanged.
-
-If the database already contains an Admin and its password is lost, do not keep changing the environment variable. Restore a backup, or deliberately create a new empty lab database. Never delete a volume before confirming that its data is backed up.
-
-### 3.8 Move the persistent database to another PC
-
-Use this when you need the existing Admin, users, profiles, enrollments and marks—not just the source code. Perform the export on the original PC while the Java application is stopped, but keep PostgreSQL running:
-
-```powershell
-docker compose exec -T postgres pg_dump -U myuser -d fm_school_db -Fc -f /tmp/fm_school.dump
-docker compose cp postgres:/tmp/fm_school.dump .\fm_school.dump
+```text
+Admin:   admin / 12345678
+Teacher: teacher2 / teacher2
+Student: student2 / student2
 ```
 
-Transfer `fm_school.dump` privately using a USB drive or private storage. It contains account password hashes and personal records. Do not commit it, upload it to a public repository, or leave it inside the project when running `git add .`.
+`AdminBootstrap` may create a temporary random Admin during the first startup,
+but the seed immediately replaces that demo password with `12345678`.
 
-On the destination PC, copy the dump into the project folder, start PostgreSQL, and stop Java before restoring:
-
-```powershell
-docker compose up -d postgres
-docker compose cp .\fm_school.dump postgres:/tmp/fm_school.dump
-docker compose exec postgres dropdb -U myuser --if-exists fm_school_db
-docker compose exec postgres createdb -U myuser fm_school_db
-docker compose exec postgres pg_restore -U myuser -d fm_school_db /tmp/fm_school.dump
-```
-
-Start FM School after the restore and use the Admin password from the **original** database. Do not set a new `FM_ADMIN_PASSWORD` expecting it to replace that password; an Admin already exists in the restored records. Confirm the restore before deleting the private dump:
-
-```powershell
-docker compose exec postgres psql -U myuser -d fm_school_db -c "SELECT username, role FROM accounts ORDER BY username;"
-docker compose exec postgres psql -U myuser -d fm_school_db -c "SELECT COUNT(*) AS students FROM students; SELECT COUNT(*) AS teachers FROM teachers; SELECT COUNT(*) AS enrollments FROM enrollments;"
-```
-
-The dump and restore should use the same project schema version. If you have only source code and no records to preserve, use the fresh-database procedure instead; it is simpler and avoids carrying private data.
-
-### 3.9 Verify the database and UI
+### 3.8 Verify the database and UI
 
 ```powershell
 docker compose exec postgres psql -U myuser -d fm_school_db -c "\dt"
@@ -315,13 +291,15 @@ This creates a branch; it does not save uncommitted work by itself. Commit the s
 
 ### Stopping
 
-Stop Java with IntelliJ's red Stop button. Stop the container while keeping its volume:
+Stop Java with IntelliJ's red Stop button. Stop the local PostgreSQL container:
 
 ```powershell
 docker compose stop
 ```
 
-Do not run `docker compose down -v` unless you deliberately intend to delete database volume data. A Docker reinstall or lab-PC cleanup may remove local data; a named volume does not protect against every machine-level deletion.
+For a fresh lab demonstration, it is safe to recreate the local database and
+reload the seed when needed. The demo workflow does not depend on preserving
+records between PCs.
 
 ## 6. Understand one complete request
 
@@ -373,7 +351,7 @@ All Java paths below start at `src/main/java/com/example/fmschool/`. In IntelliJ
 | `config/SecurityConfig.java` | Two security filter chains, allowed URLs, Admin restrictions, password encoder, account lookup, login redirect |
 | `config/AdminBootstrap.java` | Creates the first Admin only when none exists; reads `FM_ADMIN_PASSWORD` or generates one |
 | `resources/application.properties` | Application name, schema validation, hidden error internals |
-| root `compose.yaml` | PostgreSQL image, credentials, port mapping and persistent volume |
+| root `compose.yaml` | PostgreSQL image, credentials, port mapping and local database storage |
 | root `pom.xml` | Java version, Spring Boot version, Java dependencies and Maven plugins |
 
 ### Controllers: entry points for requests
@@ -495,7 +473,9 @@ Liquibase records applied changesets in `databasechangelog`. It does not recreat
 
 `spring.jpa.hibernate.ddl-auto=validate` tells Hibernate to check entity/schema compatibility. Liquibase owns schema changes; Hibernate does not silently update tables.
 
-Docker image pinning makes startup reproducible; it does not mean newer releases make our pinned image stop working. Upgrades are deliberate changes that need compatibility checks and data backups.
+Docker image pinning makes startup reproducible; it does not mean newer
+releases make our pinned image stop working. Upgrades are deliberate changes
+that need compatibility checks.
 
 ## 9. Login, permissions and ownership
 
@@ -880,7 +860,7 @@ Seeded Students are already associated; create a fresh one for the request demon
 | Lombok method unresolved | Wait for Maven sync; check plugin/annotation processing; run Maven compile to distinguish IDE inspection from compiler failure. |
 | Liquibase checksum error | Look for edits to an applied changeset. Restore migration history and append a new change; do not blindly clear checksums to conceal a mismatch. |
 | Hibernate missing-column/schema error | Entity and migration disagree; inspect migration logs and `\d table_name`. |
-| Admin password not printed | Admin probably already exists. Bootstrap prints a generated password only on creation. Use the saved password; it cannot be recovered from the stored hash. |
+| Admin login fails | Run `.\run-demo.ps1` again, or load `demo/seed-demo-data.sql` manually after the application has created the tables. The seed ensures `admin` / `12345678`. |
 | Own-profile Save appears to do nothing | Check success notice, validation messages, current Run process and reloaded data. Inspect the POST controller/service mapping; changing a label alone does not save a field. |
 | New route returns 404 | Check exact path/annotation, saved Java compilation and component package under com.example.fmschool; restart the actual main app. |
 | Form returns 405 | Form method/action and controller mapping differ, often POST submitted to a GET-only path. |
@@ -889,20 +869,7 @@ Seeded Students are already associated; create a fresh one for the request demon
 | Styles missing | Confirm `/css/app.css` loads without login; run CSS build, Build Project, Ctrl+F5. Do not link the uncompiled styles/app.css file. |
 | Change not reflected | Save file; Java changes need compilation/restart; template/CSS changes need copying to target/classes; CSS class changes need Tailwind compilation. |
 | SQL column text wraps oddly | Terminal width is narrow; this does not change database records. |
-| Data absent on another PC | Source was cloned but database volume was not; load optional seed or restore an explicit backup. |
-
-### Database backup when actual records must travel
-
-For a portable backup without PowerShell binary-redirection problems, create the dump inside the container and copy it out:
-
-```powershell
-docker compose exec -T postgres pg_dump -U myuser -d fm_school_db -Fc -f /tmp/fm_school.dump
-docker compose cp postgres:/tmp/fm_school.dump .\fm_school.dump
-```
-
-Store the dump privately outside the public repository; it includes account password hashes and records. **Do not run `git add .` while an unignored dump is in the project.** Move it out after copying. This is a manual backup procedure; cross-PC restoration has not been verified in this session.
-
-On a fresh destination whose tables have been created by the same migrations, copy it into the running container and restore only after deciding that replacing that destination data is intended. A restore can conflict with or replace existing records: do not improvise `--clean` on your working database during the demonstration. For normal lab practice, the committed demo seed is simpler than carrying live data.
+| Data absent on another PC | That is expected. Start the application once, then run `run-demo.ps1` to apply migrations and load the demo seed. |
 
 ## 18. Questions you should be able to answer
 
@@ -934,7 +901,9 @@ On a fresh destination whose tables have been created by the same migrations, co
 
 **Why not trust a submitted account ID?** The server must derive own-profile identity from authentication or verify explicit Admin/Teacher ownership before touching that target.
 
-**Does a named volume mean GitHub stores records?** No. The volume persists data locally across ordinary container recreation. GitHub tracks pushed files, not volume contents.
+**Why do records differ between PCs?** Each PC has its own local PostgreSQL
+container. That is intentional for this lab. The seed recreates the same
+accounts and demonstration records, so no personal database needs to travel.
 
 **What differs from the lecturer's starter?** This project adds its own account/profile separation, recipient-accepted enrollment model, one accepted course, scoped Teacher edits/marks, Liquibase migrations, public role-fixed signup, DTO-based JSON contracts and compiled Tailwind. Use the starter as a course reference, not proof that every filename/rule must match. Only the project-creation slide excerpt was available in the conversation; do not claim the entire slide deck was reviewed in this styling/documentation pass.
 
