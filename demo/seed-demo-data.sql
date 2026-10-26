@@ -1,7 +1,15 @@
--- Explicit opt-in local demo data. Each password equals its username.
--- Re-running preserves existing account passwords and profiles. No DELETE statements.
+-- Explicit opt-in local demo data.
+-- Admin password: 12345678. Other demo passwords equal their usernames.
+-- Re-running preserves demo account passwords and profiles, except the demo Admin
+-- is deliberately reset to 12345678 so the lab login is always known. No DELETE statements.
 -- Run only after migrations 001-005 have applied. Conflicting course assignments abort the transaction.
 BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+INSERT INTO accounts (username, password_hash, role)
+VALUES ('admin', '{bcrypt}' || crypt('12345678', gen_salt('bf')), 'ADMIN')
+ON CONFLICT (username) DO UPDATE
+SET password_hash = EXCLUDED.password_hash,
+    role = 'ADMIN';
 INSERT INTO accounts (username, password_hash, role) VALUES ('teacher2', '{bcrypt}$2a$10$kh9f3BbqmMo74rqJs3P9RuwD3JI6RxufBlbfYjMN03iF/DCD1brrq', 'TEACHER') ON CONFLICT (username) DO NOTHING;
 INSERT INTO accounts (username, password_hash, role) VALUES ('teacher3', '{bcrypt}$2a$10$QCItVddR4r62fFnQxBr9xuHavDjhlLWMRg3XiIDr7HeyDg.kdLaMi', 'TEACHER') ON CONFLICT (username) DO NOTHING;
 INSERT INTO accounts (username, password_hash, role) VALUES ('teacher4', '{bcrypt}$2a$10$N9BORmUgVM8mPp.n3hc/C.MZlHD2Sp4kNhMfr/HfI0E8/uZT/0R3a', 'TEACHER') ON CONFLICT (username) DO NOTHING;

@@ -1,8 +1,8 @@
-# Optional local demo accounts
+# Local demo accounts
 
-This seed is for local lab demonstrations. It is not run automatically during application startup.
+This seed is for local lab demonstrations. It is not run automatically during application startup. It creates the Admin account as well as the Teacher and Student demo accounts.
 
-Every demo password equals its username. Passwords are stored as bcrypt hashes in the SQL file and database. The credentials are deliberately public demo values: do not use them on a public deployment or for real records.
+The Admin login is `admin` / `12345678`. Every other demo password equals its username. Passwords are stored as bcrypt hashes in the database. The credentials are deliberately public demo values: do not use them on a public deployment or for real records.
 
 | Teacher name / username | Password | Course | Accepted Students |
 |---|---|---|---|
@@ -16,16 +16,16 @@ Student names and usernames are exactly `student2` through `student16`; each pas
 
 ## Create this data on the lab PC
 
-1. Clone the project, start Docker, and run FM School so Liquibase applies changesets 001–005.
+1. Clone the project, start Docker, and run FM School so Liquibase applies changesets 001–005. Stop Java before running the seed if it is still starting.
 2. In a PowerShell terminal in the project root, run:
 
 ```powershell
 Get-Content -LiteralPath .\demo\seed-demo-data.sql | docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U myuser -d fm_school_db
 ```
 
-3. Open `/login` and log in as one of the demo users.
+3. Open `/login` and log in as `admin` / `12345678` or one of the demo users.
 4. A Teacher can open My Enrollments and edit only the three assigned Students' name, roll and marks. A Student sees their one accepted course and read-only marks.
 
-The seed adds data in a single transaction. It does not delete data, change the existing Admin, or reset existing users' passwords/profiles. Re-running skips existing usernames/profiles and Teacher–Student pairs. If an existing demo Student already belongs to another accepted course, the unique rule aborts the transaction instead of silently moving them. Do not re-run it to undo tests: it preserves changed profiles and marks, and may recreate associations that were removed.
+The seed adds data in a single transaction. It does not delete data or reset existing Teacher/Student passwords and profiles. It deliberately ensures that the demo `admin` password is `12345678`, including when `AdminBootstrap` created a random Admin during the first application startup. Re-running skips existing Teacher/Student usernames/profiles and pairs. If an existing demo Student already belongs to another accepted course, the unique rule aborts the transaction instead of silently moving them. Do not re-run it to undo tests: it preserves changed profiles and marks, and may recreate associations that were removed.
 
 Name validation keeps the letters/spaces rule for ordinary names but permits `studentN`/`teacherN` demo labels so these seeded profiles remain editable. This is a deliberate demo exception.

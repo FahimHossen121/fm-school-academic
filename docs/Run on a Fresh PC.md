@@ -1,10 +1,63 @@
 # FM School: run on a fresh Windows PC
 
-> **26 October 2026 update — chunk 2A:** Student migration, creation/listing and editing have since been demonstrated. Account security is now implemented and awaits manual startup verification. Old stopping-point notes below describe earlier checkpoints. The old default `user` login is replaced: use `admin` with the `INITIAL ADMIN PASSWORD` printed once on first account creation, or the `FM_ADMIN_PASSWORD` you set before that creation. Passwords persist and are not regenerated on each run. See the README and Feature Chunks guide for current checks. Teacher/Student own-profile access is the next chunk. The repository is `https://github.com/FahimHossen121/fm-school-academic.git`; use this actual URL in clone commands instead of the older placeholder.
+> **Fast lab-demo path:** The current project uses database-backed Admin, Teacher and Student accounts. After the first application startup creates the schema, one PowerShell command loads the complete demo dataset. The seeded Admin login is `admin` / `12345678`; demo Teacher and Student passwords equal their usernames.
 
-This guide explains how to download the project from GitHub, prepare a Windows lab PC, and run the same application there. It records the current setup on 9 October 2026. Replace `YOUR_USERNAME` in example URLs with the repository owner's GitHub username.
+This guide explains how to download the project from GitHub, prepare a Windows lab PC, and run the same application there. The repository is `https://github.com/FahimHossen121/fm-school-academic.git`.
 
-The project is still being built. The working endpoint is `/api/hello`. Student CRUD, custom accounts/roles, Tailwind compilation, and the first verified Liquibase migration are not complete. Downloading the source does not complete those features.
+The fastest route is in the next section. The remaining sections explain the setup in detail and help troubleshoot the lab PC.
+
+## Fast lab-demo setup
+
+Use this path when Docker Desktop, Git, IntelliJ and JDK 25 are already installed.
+
+### One-command runner
+
+The repository includes [`run-demo.ps1`](../run-demo.ps1), a Windows PowerShell runner for the complete local demonstration. It starts PostgreSQL, starts Spring Boot if it is not already running, waits for the application, loads the Admin/Teacher/Student demo records, and opens the login page. It never deletes the Docker volume.
+
+Open PowerShell in the project root and run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\run-demo.ps1
+```
+
+The execution-policy command affects only the current PowerShell window; it does not change the PC permanently. The script starts Spring Boot in a separate process. Its output is saved to `run-demo.log` and `run-demo-error.log`; these are local runtime logs and should not be committed.
+
+The runner uses the Maven Wrapper, so Maven does not need to be installed separately. JDK 25, Docker Desktop and a working Docker engine are still required. The first run may take longer while Maven downloads dependencies and Docker downloads PostgreSQL.
+
+1. Open Docker Desktop and wait until it reports that the engine is running.
+2. Clone and enter the project:
+
+```powershell
+git clone https://github.com/FahimHossen121/fm-school-academic.git
+Set-Location .\fm-school-academic
+```
+
+3. Start PostgreSQL:
+
+```powershell
+docker compose up -d postgres
+```
+
+4. Open this folder in IntelliJ, select JDK 25, allow Maven to finish importing, and run `com.example.fmschool.FmSchoolApplication`.
+5. Wait until the Run console reports that the application started successfully. This first startup lets Liquibase create the tables. The Admin generated during startup is not important because the seed sets the demo Admin password.
+6. In a second PowerShell terminal opened in the project root, run the complete demo seed:
+
+```powershell
+Get-Content -LiteralPath .\demo\seed-demo-data.sql | docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U myuser -d fm_school_db
+```
+
+7. Open [http://localhost:8080/login](http://localhost:8080/login) and use:
+
+```text
+Admin:   admin / 12345678
+Teacher: teacher2 / teacher2
+Student: student2 / student2
+```
+
+The seed creates five Teachers, fifteen Students and fifteen accepted enrollments. It is safe to run for a fresh demo database and does not reset Teacher/Student passwords, profiles or marks. It deliberately ensures the demo Admin password is `12345678`. Read [demo/README.md](../demo/README.md) for all demo accounts.
+
+If the seed command reports that a table does not exist, the application has not completed its first startup yet. Wait for successful startup and run the seed command again. If the Admin login fails, run the seed command against the same project folder and database that the application is using.
 
 ## 1. What travels through GitHub?
 
@@ -24,7 +77,7 @@ The lab already has Docker and IntelliJ, and software installation is allowed. C
 | IntelliJ IDEA | Open, build and run Java | Community edition is sufficient for our current steps |
 | JDK | Compile and execute Java | Java 25; the development PC uses OpenJDK 25.0.1 |
 | Docker Desktop | Run PostgreSQL | Start it and wait until its engine is ready |
-| Node.js and npm | Compile Tailwind CSS later | Not currently needed for `/api/hello`; document exact supported version when Tailwind is added |
+| Node.js and npm | Rebuild Tailwind CSS after styling changes | Not needed for a normal demo because compiled CSS is committed |
 
 There is no need to install a separate PostgreSQL server or standalone Maven for the current IDE workflow. Docker runs PostgreSQL; IntelliJ can use bundled Maven. The project also carries a Maven Wrapper, although its IDE import failed on the development PC and bundled Maven succeeded.
 
@@ -128,29 +181,28 @@ Do not delete volumes to solve an unexplained failure. `docker compose down -v` 
 
 Only PostgreSQL runs in Docker at this stage. Spring Boot runs as a Java process on the lab PC. A future Dockerfile for the application is part of the assignment but has not been implemented.
 
-### Liquibase checkpoint
+### Liquibase and demo-data checkpoint
 
-The dependency was synced, but the first migration has not been executed successfully. During the initial Git review, the draft was found at `src/main/db/changelog/db.changelog-master.yaml`, outside the resources directory. It has YAML spacing/indentation issues and uses `di` instead of `id` for the primary-key column. These are unfinished learning steps; they have not been silently corrected in this Git setup commit. Before calling this guide fully verified, complete the guided migration step and commit its corrected files.
+The current changelog is `src/main/resources/db/changelog/db.changelog-master.yaml`. On the first startup, Liquibase creates the schema and records the applied changesets in the database. Hibernate uses `spring.jpa.hibernate.ddl-auto=validate`, so it checks the schema rather than silently changing it.
 
-The planned changelog is `src/main/resources/db/changelog/db.changelog-master.yaml`. Liquibase should create the `students` table and record the migration; Hibernate should validate entity-to-table mapping. If the application reports a missing changelog or table, this checkpoint is unfinished. Do not switch back to Hibernate `update` simply to hide the migration error.
+A fresh lab volume starts with an empty database. After the application starts successfully, run the seed command from the [fast lab-demo setup](#fast-lab-demo-setup). Migrations create tables; the seed creates demo records.
 
-A fresh lab volume starts with a fresh database. Migrations reproduce schema, not the development PC's Student records. Sample data or a deliberate database export/import will be added if demonstrations require existing records. No seed/export workflow is currently implemented.
+## 10. Open and verify the application
 
-## 10. Open and verify the working endpoint
+Open [http://localhost:8080/login](http://localhost:8080/login). The normal demo login is `admin` / `12345678`. The seed also provides `teacher2` / `teacher2` and `student2` / `student2`.
 
-Open `http://localhost:8080/api/hello` in the lab PC's browser.
+For a quick server check, open `/api/hello` after signing in. The application also exposes the JSON API documented in [JSON API Guide.md](JSON%20API%20Guide.md). The login page and the role-specific home pages are the main demonstration screens.
 
-Until custom security is implemented, sign in with username `user` and the generated development password from **that run's console**. The development-PC screenshot password is not the lab password.
+## 11. Tailwind styling
 
-Expect a JSON response with a message such as `Hello from FM School`. This verifies the controller endpoint, not Student CRUD. `/` currently has no homepage mapping and can legitimately return 404 after authentication.
+The compiled CSS is already committed, so Node.js is not required to run the application on the lab PC. Install Node.js only when changing styles or templates that introduce new Tailwind classes. From the project root:
 
-If `/api/hello` returns 404 after editing the controller, save, stop and rerun the Java application, then try again. Verify the package and mapping rather than assuming the database is responsible for every HTTP error.
+```powershell
+npm.cmd ci
+npm.cmd run css:build
+```
 
-## 11. Tailwind checkpoint for later
-
-Node.js is chosen for compiling Tailwind, while Java remains the server. Tailwind configuration and npm scripts do not exist yet. Do not run a guessed build command.
-
-When implemented, this guide must be updated with the exact Node version, `npm ci`, the actual CSS build script, and the generated CSS path. Commit the lockfile and input/configuration; exclude `node_modules`. We will decide whether to also commit compiled CSS or generate it during setup/build.
+Commit both the editable source under `src/main/resources/styles/` and the generated file under `src/main/resources/static/css/`.
 
 ## 12. Continue on two PCs without losing changes
 
@@ -196,9 +248,12 @@ If the lab clears user files or Docker volumes between sessions, local records m
 - JDK 25 selected, Maven import successful, editor recognizes Lombok.
 - Docker engine reachable; Compose PostgreSQL service starts.
 - Java application starts and opens a PostgreSQL connection.
+- Liquibase applies changesets 001–005 on first startup.
+- The seed command completes without an SQL error.
+- `/login` accepts `admin` / `12345678`.
 - `/api/hello` returns JSON after login.
-- First migration applies successfully once implemented; database table inspected.
-- Exact Tailwind build succeeds once implemented.
+- Manage Teachers, Manage Students and My Enrollments open successfully.
+- Tailwind CSS is visible from the committed compiled stylesheet.
 - A test modification can be pushed and downloaded on the other PC.
 
-**Verification status:** this guide has been authored, but no fresh lab-PC run has yet been observed. We must test the procedure on a fresh clone before claiming portability is proven.
+**Verification status:** the fast path is based on the committed Compose file, Liquibase changelog and demo seed. Confirm the Docker engine, JDK 25 and Maven import on the actual lab PC before the demonstration.

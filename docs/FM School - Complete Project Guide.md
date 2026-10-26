@@ -182,7 +182,52 @@ On startup, Liquibase applies migrations, Hibernate validates the schema and the
 
 Open [http://localhost:8080/login](http://localhost:8080/login). The compiled stylesheet is already in Git, so the page should be styled immediately.
 
-### 3.7 Verify the database and UI
+### 3.7 Why the Admin login changes between folders or PCs
+
+The project files and the database are separate. GitHub transfers Java code, templates and migrations; it does **not** transfer PostgreSQL records or the Docker named volume. Also, Docker Compose normally prefixes the named volume with the Compose project name, which is commonly based on the folder name. Therefore, running a copy from another folder can use a different database even on the same PC.
+
+`AdminBootstrap` creates `admin` only when the selected database has no Admin. It prints a generated password only during that first creation. Setting `FM_ADMIN_PASSWORD` later does not reset an existing Admin password. The private `admin-login.local.txt` file is useful only for the database for which that password was created; do not copy it to GitHub or assume it works against a fresh database.
+
+For a **fresh database with no records**, set `FM_ADMIN_PASSWORD` before the first Java startup:
+
+1. Stop Java and start PostgreSQL.
+2. In IntelliJ **Run → Edit Configurations**, add `FM_ADMIN_PASSWORD` with an 8–64 character password.
+3. Start FM School once and log in as `admin`.
+4. Keep that password private. It is used only when the first Admin is created.
+
+If the database already contains an Admin and its password is lost, do not keep changing the environment variable. Restore a backup, or deliberately create a new empty lab database. Never delete a volume before confirming that its data is backed up.
+
+### 3.8 Move the persistent database to another PC
+
+Use this when you need the existing Admin, users, profiles, enrollments and marks—not just the source code. Perform the export on the original PC while the Java application is stopped, but keep PostgreSQL running:
+
+```powershell
+docker compose exec -T postgres pg_dump -U myuser -d fm_school_db -Fc -f /tmp/fm_school.dump
+docker compose cp postgres:/tmp/fm_school.dump .\fm_school.dump
+```
+
+Transfer `fm_school.dump` privately using a USB drive or private storage. It contains account password hashes and personal records. Do not commit it, upload it to a public repository, or leave it inside the project when running `git add .`.
+
+On the destination PC, copy the dump into the project folder, start PostgreSQL, and stop Java before restoring:
+
+```powershell
+docker compose up -d postgres
+docker compose cp .\fm_school.dump postgres:/tmp/fm_school.dump
+docker compose exec postgres dropdb -U myuser --if-exists fm_school_db
+docker compose exec postgres createdb -U myuser fm_school_db
+docker compose exec postgres pg_restore -U myuser -d fm_school_db /tmp/fm_school.dump
+```
+
+Start FM School after the restore and use the Admin password from the **original** database. Do not set a new `FM_ADMIN_PASSWORD` expecting it to replace that password; an Admin already exists in the restored records. Confirm the restore before deleting the private dump:
+
+```powershell
+docker compose exec postgres psql -U myuser -d fm_school_db -c "SELECT username, role FROM accounts ORDER BY username;"
+docker compose exec postgres psql -U myuser -d fm_school_db -c "SELECT COUNT(*) AS students FROM students; SELECT COUNT(*) AS teachers FROM teachers; SELECT COUNT(*) AS enrollments FROM enrollments;"
+```
+
+The dump and restore should use the same project schema version. If you have only source code and no records to preserve, use the fresh-database procedure instead; it is simpler and avoids carrying private data.
+
+### 3.9 Verify the database and UI
 
 ```powershell
 docker compose exec postgres psql -U myuser -d fm_school_db -c "\dt"
@@ -203,9 +248,9 @@ This procedure is based on the current configuration and verified development-PC
 3. Click **Create Account**. You return to login with a success message.
 4. Sign in with those credentials. Teacher/Student login opens **My Profile** (`/me`). Admin login opens the overview (`/`).
 
-### Optional seeded demonstration users
+### Seeded demonstration accounts
 
-After the first successful startup, run from the project root:
+After the first successful startup (so Liquibase has created the tables), run from the project root:
 
 ```powershell
 Get-Content -LiteralPath .\demo\seed-demo-data.sql | docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U myuser -d fm_school_db
@@ -219,7 +264,7 @@ Get-Content -LiteralPath .\demo\seed-demo-data.sql | docker compose exec -T post
 | teacher5 / teacher5 | Demo Course 5 | student11, student12, student13 |
 | teacher6 / teacher6 | Demo Course 6 | student14, student15, student16 |
 
-Each Student password equals its username. The script is optional, not a startup migration. It stores hashes and creates 15 accepted associations. It does not reset existing passwords or overwrite edited profiles. Re-running it is not a way to reset a test; it can recreate removed demo associations, and conflicts with another accepted course abort the transaction. Read `demo/README.md` before rerunning it.
+The seed also ensures `admin` has password `12345678`, even if `AdminBootstrap` created a random Admin during the first startup. Each Student and Teacher password equals its username. The script is optional, not a startup migration. It stores bcrypt hashes and creates 15 accepted associations. It does not reset Teacher/Student passwords or edited profiles. Re-running it is not a way to reset a test; it can recreate removed demo associations, and conflicts with another accepted course abort the transaction. Read `demo/README.md` before rerunning it.
 
 ## 5. Everyday startup, shutdown and Git
 
