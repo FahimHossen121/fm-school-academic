@@ -12,6 +12,13 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Getter
+    @Setter
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", unique = true)
+    private Account account;
+
     @Setter
     @Getter
     private String name;
