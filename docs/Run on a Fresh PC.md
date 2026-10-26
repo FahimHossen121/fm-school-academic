@@ -23,7 +23,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 The execution-policy command affects only the current PowerShell window; it does not change the PC permanently. The script starts Spring Boot in a separate process. Its output is saved to `run-demo.log` and `run-demo-error.log`; these are local runtime logs and should not be committed.
 
-The runner uses the Maven Wrapper, so Maven does not need to be installed separately. JDK 25, Docker Desktop and a working Docker engine are still required. The first run may take longer while Maven downloads dependencies and Docker downloads PostgreSQL.
+The runner uses the Maven Wrapper, so Maven does not need to be installed separately. Its terminal must have JDK 25 configured through JAVA_HOME/PATH; an IntelliJ-only SDK selection is insufficient. Check `java -version` and `.\mvnw.cmd -version` first. JDK 25, Docker Desktop and a working Docker engine are still required. The first run may take longer while Maven downloads dependencies and Docker downloads PostgreSQL.
 
 1. Open Docker Desktop and wait until it reports that the engine is running.
 2. Clone and enter the project:
@@ -254,3 +254,5 @@ If the lab clears user files or Docker volumes between sessions, local records m
 - A test modification can be pushed and downloaded on the other PC.
 
 **Verification status:** the fast path is based on the committed Compose file, Liquibase changelog and demo seed. Confirm the Docker engine, JDK 25 and Maven import on the actual lab PC before the demonstration.
+
+Runner-started Java runs separately from IntelliJ. Before switching to IDE execution, stop only that project process; closing the terminal alone does not stop it. See the complete guide’s runner process instructions.
