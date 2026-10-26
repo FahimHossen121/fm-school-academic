@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Sign up | FM School</title></head>
+<body>
+<h1 th:text="${isStudent ? 'Student Signup' : 'Teacher Signup'}"></h1>
+<form th:action="@{${signupPath}}" th:object="${signupForm}" method="post">
+    <ul th:if="${#fields.hasAnyErrors()}" role="alert">
+        <li th:each="error : ${#fields.allErrors()}" th:text="${error}"></li>
+    </ul>
+    <p><label for="username">Username</label>
+        <input id="username" type="text" th:field="*{username}" autocomplete="username"></p>
+    <p><label for="name">Name</label>
+        <input id="name" type="text" th:field="*{name}" autocomplete="name"></p>
+    <p><label for="password">Password (8–64 characters)</label>
+        <input id="password" name="password" type="password" autocomplete="new-password"></p>
+    <p th:if="${isStudent}"><label for="roll">Roll</label>
+        <input id="roll" type="text" th:field="*{roll}"></p>
+    <p th:unless="${isStudent}"><label for="course">Course</label>
+        <input id="course" type="text" th:field="*{course}"></p>
+    <button type="submit">Create Account</button>
+</form>
+<p><a th:href="@{/signup}">Choose another role</a></p>
+<p><a th:href="@{/login}">Already have an account? Sign in</a></p>
+</body>
+</html>
