@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Accounts | FM School</title></head>
+<body>
+<h1>Accounts</h1>
+<a th:href="@{/}">Home</a>
+<a th:href="@{/admin/accounts/new}">Create Account</a>
+<table>
+    <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
+    <tbody><tr th:each="account : ${accounts}">
+        <td th:text="${account.id}"></td>
+        <td th:text="${account.username}"></td>
+        <td th:text="${account.role}"></td>
+        <td><a th:if="${account.role.name() != 'ADMIN'}"
+               th:href="@{/admin/accounts/{id}/profile(id=${account.id})}">Manage Profile</a></td>
+    </tr></tbody>
+</table>
+</body>
+</html>
