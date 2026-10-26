@@ -2,7 +2,7 @@
 
 Updated: 26 October 2026. This guide describes the code currently in this repository.
 
-**Read sections 1–5 to run the project; 6–11 to understand it; 12–15 to make changes; 16–19 to prepare for the lab.** You do not need to memorize every line. Learn the request flow and use the file map to locate the relevant code.
+**Short on time? Read section 20 first for the four likely viva questions and exactly which code to show.** Read sections 1–5 to run the project; 6–11 to understand it; 12–15 to make changes; 16–19 to prepare for the lab. You do not need to memorize every line. Learn the request flow and use the file map to locate the relevant code.
 
 ## Contents
 
@@ -25,6 +25,7 @@ Updated: 26 October 2026. This guide describes the code currently in this reposi
 17. [Troubleshooting](#17-troubleshooting)
 18. [Questions you should be able to answer](#18-questions-you-should-be-able-to-answer)
 19. [Limitations and final checklist](#19-limitations-and-final-checklist)
+20. [Viva answers: show the actual code](#20-viva-answers-show-the-actual-code)
 
 ## 1. What we built and the final rules
 
@@ -153,6 +154,33 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 `FM_ADMIN_PASSWORD` remains available for a private non-demo database, but it
 is not needed for the lab seed. Never commit a real password.
+
+The seed deliberately resets the existing `admin` password to `12345678` whenever
+it completes, even if a different password was chosen before. This is a local
+demo convenience. AdminBootstrap alone does not reset an existing Admin.
+
+### Runner prerequisites and process behavior
+
+The one-command runner uses `mvnw.cmd` in PowerShell. JDK 25 must therefore be
+available to that terminal through `JAVA_HOME`/PATH; selecting a JDK only inside
+IntelliJ is not sufficient. Check `java -version` and `.\mvnw.cmd -version` before
+using the runner. If the wrapper fails, use the IntelliJ startup steps below,
+then run the SQL seed command manually.
+
+The runner waits up to approximately 60 seconds for database readiness and then
+approximately two minutes for application readiness, plus request timeouts. A
+first dependency download may exceed this window. Inspect `run-demo.log` and
+`run-demo-error.log`; do not repeatedly start another Java process while an
+existing startup is still downloading. Its `/login` check confirms a responding
+page, not a full test of all features or a guarantee that the running process
+contains your newest code.
+
+Spring Boot launched by the runner is a separate process. Closing its terminal
+or clicking Stop in an unrelated IntelliJ configuration may not stop it. For
+code editing, stop that specific Java process first, then run FM School from
+IntelliJ. Use Windows Task Manager's Details tab and Command line column to
+identify the Java process containing `FmSchoolApplication` and this project
+before ending it. Do not terminate unrelated Java applications.
 
 ### 3.5 Start PostgreSQL
 
@@ -929,3 +957,224 @@ Before leaving for lab:
 - [ ] Keep this guide available locally; first-time Maven/image downloads may need internet.
 
 For shorter references: [Styling](Styling.md), [API endpoints and PowerShell examples](JSON%20API%20Guide.md), [optional demo accounts](../demo/README.md). The earlier detailed feature history remains in [Feature Chunks](Feature%20Chunks.md).
+
+## 20. Viva answers: show the actual code
+
+In IntelliJ, press **Ctrl+Shift+N**, type the filename and press Enter. Use
+**Ctrl+F12** to find a method. Keep these files open before the demonstration:
+StudentController, PeopleApiService, Student, StudentRepository, StudentService,
+SecurityConfig, EnrollmentService and compose.yaml.
+
+### Question 1: How did you create the REST API?
+
+**Say:** “I created REST controllers that map HTTP requests to Java methods.
+Controllers accept validated request DTOs, call services for business logic,
+and return response DTOs as JSON.”
+
+**Show first:** [StudentController.java](../src/main/java/com/example/fmschool/controller/StudentController.java).
+
+```java
+@RestController
+@RequestMapping("/api/students")
+public class StudentController {
+```
+
+- `@RestController` returns response data, rather than selecting an HTML template.
+- `@RequestMapping` establishes the base path.
+- The constructor receives PeopleApiService through Spring's dependency injection.
+
+Find `list()`:
+
+```java
+@GetMapping
+public List<PeopleApiService.StudentView> list() {
+    return people.students();
+}
+```
+
+Then find `create()`, `update()` and `delete()`:
+
+- GET `/api/students` reads the collection.
+- POST accepts `@Valid @RequestBody CreatePersonRequest`: JSON is bound and validated.
+- `ResponseEntity.created(...)` returns 201 and a Location header after creation.
+- PUT `/api/students/{id}` updates the specified Student.
+- DELETE returns 204 with no response body.
+
+**Show next:** [PeopleApiService.java](../src/main/java/com/example/fmschool/service/PeopleApiService.java),
+methods `students()` and `createStudent()`, and the `StudentView` record.
+
+```java
+public record StudentView(Long id, Long accountId, String username,
+                          String name, String roll) {}
+
+@Transactional(readOnly = true)
+public List<StudentView> students() {
+    return students.findAll().stream().map(this::studentView).toList();
+}
+```
+
+**Explain:** “The repository loads entities. The service maps them into a response
+DTO, so fields such as password hashes are excluded. General Student management
+is Admin-only. Teachers edit through their accepted enrollment endpoint.”
+
+**Request flow:** HTTP request → Security → Controller → Service → Repository →
+PostgreSQL → DTO → JSON response.
+
+If asked why Thymeleaf is also present: “HTML page controllers render templates
+for users; REST controllers return JSON for API clients. They reuse service rules.”
+
+### Question 2: How is Docker implemented, why use it, and what is containerized?
+
+**Say:** “Docker Compose runs PostgreSQL with a pinned version, known database
+settings and persistent storage. This makes setup repeatable on another PC
+without manually installing a PostgreSQL server.”
+
+**Show:** [compose.yaml](../compose.yaml).
+
+```yaml
+services:
+  postgres:
+    image: 'postgres:18.6'
+    environment:
+      - 'POSTGRES_DB=fm_school_db'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=myuser'
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - 'postgres_data:/var/lib/postgresql'
+
+volumes:
+  postgres_data:
+```
+
+Explain image/version, initialization settings, local host-to-container port
+mapping and the volume. The volume persists data across ordinary container
+recreation; it is not copied by GitHub and can still be deleted explicitly.
+
+**Demonstrate in Terminal:**
+
+```powershell
+docker compose ps
+docker compose exec postgres psql -U myuser -d fm_school_db -c "SELECT id, name, roll FROM students;"
+```
+
+If the service is stopped, start it with `docker compose up -d postgres`.
+
+**Be precise:** “Only PostgreSQL is containerized. Spring Boot runs on Windows
+through IntelliJ or Maven. The project currently has no application Dockerfile.”
+
+Show `spring-boot-docker-compose` and the PostgreSQL driver in [pom.xml](../pom.xml).
+Spring Boot discovers connection details from Compose. Docker does not replace
+the Java JDBC driver. The browser uses 8080; Java connects to the database through
+the published PostgreSQL port 5432.
+
+### Question 3: How did you implement Spring Data JPA?
+
+**Say:** “I added Spring Data JPA, mapped entities to database tables, and created
+repository interfaces extending JpaRepository. Services use those repositories
+to read and save records.”
+
+**Show in this order:**
+
+1. [pom.xml](../pom.xml): `spring-boot-starter-data-jpa` and PostgreSQL driver.
+2. [Student.java](../src/main/java/com/example/fmschool/entity/Student.java):
+   `@Entity`, `@Table(name = "students")`, `@Id`, and generated identity.
+3. [StudentRepository.java](../src/main/java/com/example/fmschool/repository/StudentRepository.java):
+
+```java
+public interface StudentRepository extends JpaRepository<Student, Long> {
+    java.util.Optional<Student> findByAccountId(Long accountId);
+```
+
+“Student is the entity type; Long is its ID type. Spring provides the repository
+implementation. The account lookup is derived from its method name.”
+
+4. [StudentService.java](../src/main/java/com/example/fmschool/service/StudentService.java),
+   method `updateStudent()`:
+
+```java
+@Transactional
+public void updateStudent(Long id, StudentForm form) {
+    Student student = getStudentById(id);
+    student.setName(form.getName());
+    student.setRoll(form.getRoll());
+    studentRepository.save(student);
+}
+```
+
+“The service loads the entity, changes its fields and saves it in a transaction.
+Hibernate handles object-to-table mapping. Liquibase owns schema changes;
+`spring.jpa.hibernate.ddl-auto=validate` checks that entities match the schema.”
+
+**Follow-up:** `setName()` alone is an object change. Persistence involves a save
+or transaction flush of a managed entity. Lombok generates accessors; it does
+not execute SQL. JPA is the persistence specification, Hibernate is the provider,
+and Spring Data JPA supplies the repository abstraction.
+
+### Question 4: How did you implement Spring Security?
+
+**Say:** “I implemented database-backed authentication, bcrypt password hashing,
+URL restrictions, service-level role checks and record ownership checks.”
+
+**Show:** [SecurityConfig.java](../src/main/java/com/example/fmschool/config/SecurityConfig.java).
+
+| Method/annotation | Explain while pointing to it |
+|---|---|
+| `passwordEncoder()` | Delegating encoder; new passwords use bcrypt |
+| `userDetailsService()` | Finds the Account by username and exposes its stored hash and role to Spring Security |
+| `roleLoginSuccessHandler()` | Admin goes to `/`; Teacher/Student goes to `/me` |
+| `securityFilterChain()` | Public login/signup/CSS, Admin management restrictions, form login/logout |
+| `apiFilterChain()` | First-matching `/api/**` chain, Basic authentication and JSON 401/403 responses |
+| `@EnableMethodSecurity` | Enables `@PreAuthorize` on managed service methods |
+
+Show [AccountService.java](../src/main/java/com/example/fmschool/service/AccountService.java),
+the `encoder.encode(form.getPassword())` call. SignupService uses the same encoder.
+The application compares passwords through the encoder; it does not decrypt hashes.
+
+Show PeopleApiService's class restriction:
+
+```java
+@PreAuthorize("hasRole('ADMIN')")
+```
+
+**Say:** “Backend checks still apply when someone submits HTTP directly instead
+of using our page. Hiding a button is not authorization.”
+
+**Finally show:** [EnrollmentService.java](../src/main/java/com/example/fmschool/service/EnrollmentService.java),
+methods `updateEnrolledStudent()`, `requireEditor()` and `currentAccount()`.
+
+- `@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")` limits the method's roles.
+- `requireEditor()` additionally requires an ACCEPTED enrollment and, for a
+  Teacher, a matching Teacher Account ID. An unrelated Teacher is denied.
+- `currentAccount()` resolves the logged-in username from Spring's security context.
+- Updating Student name/roll and Enrollment marks leaves Account credentials alone.
+
+**Mention CSRF:** “Protection remains enabled. Thymeleaf POST forms include the
+token through Spring integration. API writes need the token from `/api/csrf`
+and its matching session cookie.”
+
+### Last ten minutes before the lab
+
+1. Read the four spoken answers above and open the listed files in IntelliJ.
+2. Confirm Docker engine, JDK 25 and internet access for first-time downloads.
+3. On the lab PC clone/pull the repository, then follow the fresh-PC guide.
+4. Know demo logins: Admin `admin / 12345678` after seeding; Teacher
+   `teacher2 / teacher2`; Student `student2 / student2`.
+5. Demonstrate an accepted Teacher editing marks, then the Student viewing them.
+6. For a requested code change, use section 13's file lookup and editing recipes.
+7. Describe the current Docker scope honestly; do not claim Java is containerized.
+
+### Final development-PC verification — 26 October 2026
+
+- Compiled Tailwind CSS successfully.
+- Maven package succeeded and produced the executable application JAR.
+- All 69 focused security/profile/enrollment/API/signup tests passed.
+- Ten live checks passed for public pages/CSS, Teacher and Student pages, and
+  forbidden Teacher access to the Admin Student API.
+- Documentation file links were checked.
+
+The one-command runner was reviewed but not launched again for this check, since
+it reseeds demo data and resets the Admin demo password. A separate lab-PC run
+still needs confirmation on that PC. Current runtime remains Java on Windows
+and PostgreSQL in Docker.
