@@ -12,6 +12,8 @@ We now work one feature chunk at a time: code and explanation first, student tes
 4. Complete the remaining REST endpoints and validation/error contracts. Marks and attendance were removed from scope on 26 October 2026.
 5. Complete JSON CRUD, compiled Tailwind styling, application Docker packaging, tests and fresh-PC documentation.
 
+**API chunk completed in code:** Student/Teacher JSON CRUD, own-profile API, session/logout, CSRF endpoint, and enrollment/marks API now reuse the existing business and ownership rules. See [JSON API Guide.md](JSON%20API%20Guide.md). API responses use DTOs, and errors use JSON status envelopes. Account + profile creation is transactional. Verification: 53 isolated tests and 17 live API checks with disposable records passed. Tailwind, application Docker packaging, and final fresh-PC QA remain.
+
 Role and ownership restrictions belong in the backend, including requests submitted directly rather than through the UI. They are not implemented in chunk 1.
 
 ## Chunk 1: Student editing and deletion
