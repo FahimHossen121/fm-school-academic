@@ -21,15 +21,21 @@ A school management project for SEPM lab, developed step by step to learn Spring
 - PostgreSQL runs in Docker with a named volume for persistent storage.
 - `/api/hello` returned JSON in the demonstrated run.
 - The basic Student entity and repository are written.
-- The Liquibase dependency is added, but its first migration is unfinished and not verified.
-- Student CRUD, custom accounts and role permissions are not implemented yet.
+- The Student migration was verified; Student creation, listing and editing have been demonstrated. Deletion is implemented and awaits manual confirmation.
+- Database-backed accounts, hashed passwords, login/logout and Admin-only Student/account management are implemented in chunk 2A, pending browser verification.
+- Teacher/Student personal profiles and account deletion are implemented in chunk 2B.
+- Chunk 3 implements applications, invitations, recipient-only acceptance/rejection, association removal and Admin control. The associated Teacher may edit Student name/roll and course marks (0–100). Attendance is out of scope.
 - Tailwind compilation is not configured yet.
 
-### Known migration issue
+### Login after chunk 2A
 
-The current draft changelog is in `src/main/db/changelog/db.changelog-master.yaml`, outside the resources directory. It also needs YAML formatting corrections and the column name `di` corrected to `id`. The intended location is `src/main/resources/db/changelog/db.changelog-master.yaml`.
+The old generated `user` account is replaced by database accounts. On startup, Liquibase adds the `accounts` table without changing the applied Student changeset. If no Admin exists, the application creates username `admin` and prints `INITIAL ADMIN PASSWORD` once in the Run console. Keep that password locally: it persists across restarts and is stored only as a hash in the database.
 
-This initial commit preserves the learning checkpoint. A fresh startup with the Liquibase dependency is not yet verified and may fail until that checkpoint is completed.
+Alternatively set `FM_ADMIN_PASSWORD` in the run configuration before the first Admin is created (8–64 characters, at most 72 UTF-8 bytes). Changing this environment variable later does not reset an existing Admin password. Do not commit passwords in the shared run configuration.
+
+Log in at `/login`. Admin Home has exactly two management choices: **Manage Teachers** (`/admin/teachers`) and **Manage Students** (`/admin/students`). Each section lists the relevant logins and profiles, with Add, Edit and Delete actions. Add chooses the role automatically, collects credentials, then opens the personal-profile form. Teacher/Student users complete their own `/me` profile. Only Admin may manage the general Student collection, both HTML and JSON.
+
+Teacher/Student Home links to **My Enrollments** (`/enrollments`). Students apply to Teachers; Teachers invite Students. Only the recipient may accept/reject pending requests. Admin can manage all requests and directly create accepted associations through **Manage Enrollments** inside either management section. Each Student may have only one accepted course; a Teacher may have many Students. Participants may remove an accepted association without deleting either account. Rejected requests may be sent again; duplicate pending/accepted pairs are blocked. The associated Teacher (or Admin) may use **Edit Student** to edit name, roll and marks; the Student sees marks read-only. Name/roll changes do not change the login username or password.
 
 ## Run on another PC
 
@@ -42,13 +48,15 @@ The Compose credentials are local demonstration values, not production credentia
 ## Planned permissions
 
 - Admin: full control.
-- Teacher: own profile and course-specific marks/attendance for accepted students.
+- Teacher: own name/course, invitations and incoming applications, and name/roll/marks of Students accepted into their own course.
 - Student: own profile.
-- One Teacher teaches one course; Students and Teachers have a many-to-many relationship.
+- One Teacher teaches one course and may enroll many Students; one Student may have only one accepted course.
 - Student applications and Teacher invitations require acceptance by the recipient.
 - Removing a course association keeps both accounts.
 - Students and Teachers may delete their own accounts.
 
 ## Working between home and lab
+
+Optional ready-to-test accounts and course assignments are documented in [demo/README.md](demo/README.md). The opt-in SQL seed recreates five Teachers and fifteen Students on a fresh lab database. Existing database volumes are still not included in Git.
 
 Pull before editing a clean clone. Review, commit and push before leaving either PC. Unpushed commits and unexported database records remain on that PC.
