@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title th:text="${title}"></title></head>
+<body>
+<h1 th:text="${title}"></h1>
+<p>First choose login credentials. Next, enter the personal profile.</p>
+<form th:action="@{${savePath}}" th:object="${accountForm}" method="post">
+    <ul th:if="${#fields.hasAnyErrors()}">
+        <li th:each="error : ${#fields.allErrors()}" th:text="${error}"></li>
+    </ul>
+    <input type="hidden" th:field="*{role}">
+    <p><label for="username">Username</label>
+        <input id="username" type="text" th:field="*{username}" autocomplete="off"></p>
+    <p><label for="password">Password (8–64 characters)</label>
+        <input id="password" name="password" type="password" autocomplete="new-password"></p>
+    <button type="submit">Continue to Profile</button>
+</form>
+<a th:href="@{${savePath}}">Back</a>
+</body>
+</html>
