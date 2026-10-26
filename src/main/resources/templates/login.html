@@ -11,6 +11,7 @@
     <p th:if="${param.error}" role="alert">Invalid username or password.</p>
     <p th:if="${param.logout}">You have been logged out.</p>
     <p th:if="${param.deleted}">Your account has been deleted.</p>
+    <p th:if="${param.registered}" role="status">Account created. Sign in with your new username and password.</p>
     <form th:action="@{/login}" method="post">
         <p>
             <label for="username">Username</label>
@@ -24,6 +25,8 @@
         </p>
         <button type="submit">Sign in</button>
     </form>
+    <p><a th:href="@{/signup/student}">Sign up as a Student</a></p>
+    <p><a th:href="@{/signup/teacher}">Sign up as a Teacher</a></p>
 </main>
 </body>
 </html>
