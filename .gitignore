@@ -61,3 +61,6 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local Admin recovery credentials
+admin-login.local.txt
