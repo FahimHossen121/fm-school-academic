@@ -19,3 +19,155 @@ databaseChangeLog:
               - column:
                   name: roll
                   type: VARCHAR(255)
+  - changeSet:
+      id: 002-create-accounts
+      author: fm-school
+      changes:
+        - createTable:
+            tableName: accounts
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: username
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: accounts_username_unique
+              - column:
+                  name: password_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 003-link-personal-profiles
+      author: fm-school
+      changes:
+        - addColumn:
+            tableName: students
+            columns:
+              - column:
+                  name: account_id
+                  type: BIGINT
+        - addUniqueConstraint:
+            tableName: students
+            columnNames: account_id
+            constraintName: students_account_unique
+        - addForeignKeyConstraint:
+            baseTableName: students
+            baseColumnNames: account_id
+            referencedTableName: accounts
+            referencedColumnNames: id
+            constraintName: students_account_fk
+        - createTable:
+            tableName: teachers
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: account_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: teachers_account_unique
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: course
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: teachers
+            baseColumnNames: account_id
+            referencedTableName: accounts
+            referencedColumnNames: id
+            constraintName: teachers_account_fk
+  - changeSet:
+      id: 004-create-enrollments
+      author: fm-school
+      changes:
+        - createTable:
+            tableName: enrollments
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: teacher_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: student_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requested_by
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: enrollments
+            columnNames: teacher_id, student_id
+            constraintName: enrollments_pair_unique
+        - addForeignKeyConstraint:
+            baseTableName: enrollments
+            baseColumnNames: teacher_id
+            referencedTableName: teachers
+            referencedColumnNames: id
+            constraintName: enrollments_teacher_fk
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: enrollments
+            baseColumnNames: student_id
+            referencedTableName: students
+            referencedColumnNames: id
+            constraintName: enrollments_student_fk
+            onDelete: CASCADE
+  - changeSet:
+      id: 005-single-course-and-marks
+      author: fm-school
+      changes:
+        - addColumn:
+            tableName: enrollments
+            columns:
+              - column:
+                  name: marks
+                  type: DECIMAL(5,2)
+        - sql:
+            dbms: postgresql
+            sql: CREATE UNIQUE INDEX enrollments_one_accepted_course ON enrollments (student_id) WHERE status = 'ACCEPTED'
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE enrollments ADD CONSTRAINT enrollments_marks_range CHECK (marks IS NULL OR (marks >= 0 AND marks <= 100))
