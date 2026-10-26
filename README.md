@@ -1,6 +1,8 @@
 # FM School
 
-A school management project for SEPM lab, developed step by step to learn Spring Boot.
+FM School is a Spring Boot school-management application for the SEPM lab. It
+manages database accounts, Teacher and Student profiles, courses, enrollment
+requests, accepted enrollments and marks.
 
 ## Stack
 
@@ -8,66 +10,71 @@ A school management project for SEPM lab, developed step by step to learn Spring
 - Spring Boot 4.1.1
 - Maven
 - PostgreSQL 18.6 through Docker Compose
-- Spring Data JPA
+- Spring Data JPA / Hibernate
 - Spring Security
 - Thymeleaf
 - Lombok
 - Liquibase
-- Compiled Tailwind CSS — planned
+- Tailwind CSS 4.3.3 with committed compiled CSS
 
-## Current progress
+## Fast lab demo
 
-- Spring Boot startup and PostgreSQL connectivity were demonstrated on the development PC before adding Liquibase.
-- PostgreSQL runs in Docker with a named volume for persistent storage.
-- `/api/hello` returned JSON in the demonstrated run.
-- The basic Student entity and repository are written.
-- The Student migration was verified; Student creation, listing and editing have been demonstrated. Deletion is implemented and awaits manual confirmation.
-- Database-backed accounts, hashed passwords, login/logout and Admin-only management are implemented and verified through automated and live checks.
-- Teacher/Student personal profiles and account deletion are implemented in chunk 2B.
-- Chunk 3 implements applications, invitations, recipient-only acceptance/rejection, association removal and Admin control. The associated Teacher may edit Student name/roll and course marks (0–100). Attendance is out of scope.
-- Thymeleaf pages use locally compiled Tailwind, shared navigation, responsive forms/tables, and enrollment status badges. See [the styling guide](docs/Styling.md) for CSS build/watch commands.
-- Public Student/Teacher signup creates a login and complete personal profile together. Students and Teachers land on `/me` after login; Admin lands on `/`.
+The fastest Windows setup is documented in
+[docs/Run on a Fresh PC.md](docs/Run%20on%20a%20Fresh%20PC.md). After Docker,
+JDK 25 and Git are installed:
 
-### Login after chunk 2A
+```powershell
+git clone https://github.com/FahimHossen121/fm-school-academic.git
+Set-Location .\fm-school-academic
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\run-demo.ps1
+```
 
-The old generated `user` account is replaced by database accounts. On startup, Liquibase adds the `accounts` table without changing the applied Student changeset. If no Admin exists, the application creates username `admin` and prints `INITIAL ADMIN PASSWORD` once in the Run console. Keep that password locally: it persists across restarts and is stored only as a hash in the database.
+The runner starts PostgreSQL, starts Spring Boot if necessary, waits for the
+application, loads the demo seed and opens the login page. It does not delete
+the Docker volume.
 
-Alternatively set `FM_ADMIN_PASSWORD` in the run configuration before the first Admin is created (8–64 characters, at most 72 UTF-8 bytes). Changing this environment variable later does not reset an existing Admin password. Do not commit passwords in the shared run configuration.
+Demo credentials:
 
-Log in at `/login`. Admin Home has exactly two management choices: **Manage Teachers** (`/admin/teachers`) and **Manage Students** (`/admin/students`). Each section lists the relevant logins and profiles, with Add, Edit and Delete actions. Add chooses the role automatically, collects credentials, then opens the personal-profile form. Teacher/Student users complete their own `/me` profile. Only Admin may manage the general Student collection, both HTML and JSON.
+| Role | Username | Password |
+|---|---|---|
+| Admin | `admin` | `12345678` |
+| Teacher | `teacher2` | `teacher2` |
+| Student | `student2` | `student2` |
 
-Teacher/Student Home links to **My Enrollments** (`/enrollments`). Students apply to Teachers; Teachers invite Students. Only the recipient may accept/reject pending requests. Admin can manage all requests and directly create accepted associations through **Manage Enrollments** inside either management section. Each Student may have only one accepted course; a Teacher may have many Students. Participants may remove an accepted association without deleting either account. Rejected requests may be sent again; duplicate pending/accepted pairs are blocked. The associated Teacher (or Admin) may use **Edit Student** to edit name, roll and marks; the Student sees marks read-only. Name/roll changes do not change the login username or password.
+The seed creates five Teachers, fifteen Students and fifteen accepted
+enrollments. See [demo/README.md](demo/README.md) for the complete list.
 
-## Public signup
+## Features
 
-The login page links to `/signup/student` and `/signup/teacher`. Student signup requires username, password, name and roll; Teacher signup requires username, password, name and course. Passwords are 8–64 characters (at most 72 UTF-8 bytes). No identity verification is required for this lab project. Duplicate usernames and invalid input are rejected. Registration returns to login with a success message; signing in then opens the new personal profile.
+- Public Student and Teacher signup with role fixed by the endpoint.
+- Database-backed login, logout, bcrypt password hashing and CSRF protection.
+- Admin management of Teacher and Student accounts and profiles.
+- Teacher and Student self-service profiles and account deletion.
+- Student applications and Teacher invitations.
+- Recipient-only acceptance/rejection of pending requests.
+- Admin enrollment management.
+- One accepted course per Student and many Students per Teacher.
+- Teacher/Admin editing of accepted Student name, roll and marks from 0 to 100.
+- JSON API with DTOs, validation, status codes and permission checks.
+- Server-rendered Thymeleaf pages with locally compiled Tailwind CSS.
 
-Public forms never offer Admin signup. The endpoint fixes the role, and submitted role/account-ID fields are not bound. Account/profile creation is transactional; passwords are hashed and not echoed back after validation errors. CSRF is required even though signup pages are public.
+Attendance is intentionally outside the current lab scope. Responsive/mobile
+behavior is also not a required deliverable; the project is demonstrated as a
+desktop/lab application.
 
-Students and Teachers always land on My Profile after form login, with My Enrollments and Log out links on that page. Admin always lands on the two-section management home. This deliberate redirect overrides any previously saved protected-page request.
+## Important database note
 
-## Setup and API reference
+GitHub stores source code and migrations, not PostgreSQL records or Docker
+volumes. The included seed recreates disposable demo data on another PC. For
+moving real local records, use the backup/restore procedure in the complete
+guide. Do not commit database dumps or private credentials.
 
-The [JSON API guide](docs/JSON%20API%20Guide.md) documents Student/Teacher CRUD, personal profiles, enrollment actions, permissions, statuses and PowerShell examples. All API writes retain CSRF protection.
+## Documentation
 
-Follow [the fresh-PC setup guide](docs/Run%20on%20a%20Fresh%20PC.md).
-
-GitHub stores committed project files. Existing PostgreSQL volume contents do not travel with the repository. Migrations reproduce the schema once implemented; existing records need sample data or a separate export/import procedure.
-
-The Compose credentials are local demonstration values, not production credentials. The database port is bound to localhost.
-
-## Planned permissions
-
-- Admin: full control.
-- Teacher: own name/course, invitations and incoming applications, and name/roll/marks of Students accepted into their own course.
-- Student: own profile.
-- One Teacher teaches one course and may enroll many Students; one Student may have only one accepted course.
-- Student applications and Teacher invitations require acceptance by the recipient.
-- Removing a course association keeps both accounts.
-- Students and Teachers may delete their own accounts.
-
-## Working between home and lab
-
-Optional ready-to-test accounts and course assignments are documented in [demo/README.md](demo/README.md). The opt-in SQL seed recreates five Teachers and fifteen Students on a fresh lab database. Existing database volumes are still not included in Git.
-
-Pull before editing a clean clone. Review, commit and push before leaving either PC. Unpushed commits and unexported database records remain on that PC.
+- [Fresh-PC and fast runner guide](docs/Run%20on%20a%20Fresh%20PC.md)
+- [Complete project guide](docs/FM%20School%20-%20Complete%20Project%20Guide.md)
+- [JSON API guide](docs/JSON%20API%20Guide.md)
+- [Demo accounts and seed](demo/README.md)
+- [Styling guide](docs/Styling.md)
+- [Feature explanations and manual checks](docs/Feature%20Chunks.md)

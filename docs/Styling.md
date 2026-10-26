@@ -76,14 +76,13 @@ tracked and `node_modules/` ignored. `npm ci` reproduces the locked installation
 5. Open an accepted student's edit page: check Name, Roll and Marks fields.
 6. As Admin, check Manage Teachers, Manage Students, add/edit forms and enrollment
    management. Delete buttons still submit immediately, as requested.
-7. At phone width, check that forms fit and wide tables scroll inside their card.
+7. Check the desktop/lab layout at the size used for the demonstration.
 8. Use Tab to move through links/inputs: keyboard focus should remain visible.
 
-Verification on 26 October 2026: Tailwind compilation and 69 existing Java tests
-passed. Nineteen live HTML requests rendered successfully across anonymous,
-Admin, Teacher and Student pages. Invalid signup rendered styled errors and the
-compiled stylesheet was accessible without login. Browser checks covered signup,
-teacher login/profile/enrollments/editing, and desktop/phone layout widths.
+Responsive/mobile behavior is outside the current lab scope. Do not treat
+responsive utility classes that happen to exist in the compiled CSS as a
+required deliverable. Run the current test command and the demo runner before
+the demonstration; exact test and live-request totals can change.
 
 References: [Tailwind CLI](https://tailwindcss.com/docs/installation/tailwind-cli)
 and [source scanning](https://tailwindcss.com/docs/detecting-classes-in-source-files).

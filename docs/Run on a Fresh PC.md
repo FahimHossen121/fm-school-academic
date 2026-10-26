@@ -61,7 +61,7 @@ If the seed command reports that a table does not exist, the application has not
 
 ## 1. What travels through GitHub?
 
-GitHub stores source files and their committed history. The repository should include `pom.xml`, `mvnw`, `mvnw.cmd`, `.mvn`, `src`, `compose.yaml`, and project documentation. Later it should also include Tailwind input files, `package.json`, `package-lock.json`, and the documented CSS build command.
+GitHub stores source files and their committed history. The repository includes `pom.xml`, `mvnw`, `mvnw.cmd`, `.mvn`, `src`, `compose.yaml`, `run-demo.ps1`, `package.json`, `package-lock.json`, compiled CSS and project documentation.
 
 Do not upload `.idea`, `target`, `out`, `node_modules`, local `.env` files, private tokens, or database volume contents. A PostgreSQL volume belongs to the PC where Docker created it. It is not downloaded by cloning GitHub.
 
@@ -100,11 +100,8 @@ The first checks the Docker command, the second checks Compose, and the third ch
 Choose a folder in your own lab-PC user account, for example `Documents\SEPM`. Open PowerShell in that folder. Do not clone inside another copy of `fm-school`.
 
 ```powershell
-git clone https://github.com/YOUR_USERNAME/fm-school.git
-```
-
-```powershell
-cd fm-school
+git clone https://github.com/FahimHossen121/fm-school-academic.git
+Set-Location .\fm-school-academic
 ```
 
 ```powershell
@@ -179,7 +176,7 @@ Do not delete volumes to solve an unexplained failure. `docker compose down -v` 
 3. Wait for the console to report successful startup, Tomcat on port 8080, and a successful PostgreSQL connection.
 4. If startup fails, inspect the first relevant error and its cause; a browser error cannot fix an application that never started.
 
-Only PostgreSQL runs in Docker at this stage. Spring Boot runs as a Java process on the lab PC. A future Dockerfile for the application is part of the assignment but has not been implemented.
+Only PostgreSQL runs in Docker at this stage. Spring Boot runs as a Java process on the lab PC. The repository does not currently include an application Dockerfile.
 
 ### Liquibase and demo-data checkpoint
 

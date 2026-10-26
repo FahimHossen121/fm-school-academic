@@ -1,20 +1,35 @@
 # Feature chunks and manual checks
 
+> This file is the project's implementation history. Some sections describe
+> earlier checkpoints and intentionally use past tense. For the current setup
+> and demo credentials, use [Run on a Fresh PC.md](Run%20on%20a%20Fresh%20PC.md)
+> and [FM School - Complete Project Guide.md](FM%20School%20-%20Complete%20Project%20Guide.md).
+
 We now work one feature chunk at a time: code and explanation first, student testing and understanding next. Do not treat a chunk as verified until its checks pass.
 
 **Latest scope, 26 October 2026:** one accepted course per Student; many Students per Teacher. The accepted Student's Teacher may edit the Student's name, roll and marks (0–100). Login username/password are separate and unchanged by profile edits. Students can read their own marks but cannot change them. Attendance remains excluded. This supersedes the earlier many-to-many and no-marks design notes below.
 
-## Roadmap
+## Completed feature history
 
-1. Finish Student HTML editing and deletion.
-2. Persist accounts; implement login, logout, password hashing and Admin/Teacher/Student permissions.
-3. Add each Teacher's course and Student/Teacher enrollment requests with recipient acceptance.
-4. Complete the remaining REST endpoints and validation/error contracts. Attendance is excluded; marks were reintroduced for accepted enrollments.
-5. Complete JSON CRUD, compiled Tailwind styling, application Docker packaging, tests and fresh-PC documentation.
+The original roadmap below has been completed except for application
+containerization, which remains outside the current demo runner:
 
-**API chunk completed in code:** Student/Teacher JSON CRUD, own-profile API, session/logout, CSRF endpoint, and enrollment/marks API now reuse the existing business and ownership rules. See [JSON API Guide.md](JSON%20API%20Guide.md). API responses use DTOs, and errors use JSON status envelopes. Account + profile creation is transactional. Verification: 53 isolated tests and 17 live API checks with disposable records passed. Application Docker packaging and final fresh-PC QA remain. Compiled Tailwind styling is now implemented; see the styling checkpoint below.
+1. Student HTML editing and deletion.
+2. Accounts, login, logout, password hashing and role permissions.
+3. Teacher courses and recipient-accepted enrollment requests.
+4. JSON CRUD, validation/error contracts and scoped marks editing.
+5. Compiled Tailwind styling, tests and fresh-PC documentation.
 
-Role and ownership restrictions belong in the backend, including requests submitted directly rather than through the UI. They are not implemented in chunk 1.
+**Current API status:** Student/Teacher JSON CRUD, own-profile API,
+session/logout, CSRF endpoint and enrollment/marks API reuse the existing
+business and ownership rules. See [JSON API Guide.md](JSON%20API%20Guide.md).
+API responses use DTOs and errors use JSON status envelopes. Account/profile
+creation is transactional. Application Docker packaging is not included in the
+current project; PostgreSQL is the only containerized service.
+
+Role and ownership restrictions belong in the backend, including requests
+submitted directly rather than through the UI. The first chunk was an early
+checkpoint; the current implementation includes these restrictions.
 
 ## Chunk 1: Student editing and deletion
 
@@ -29,7 +44,8 @@ The form DTO contains no ID. The path identifies which Student to update. This i
 
 ### Student's manual checks
 
-1. Restart FM School from IntelliJ; open `/students` and sign in with the current default development account if needed.
+1. Restart FM School from IntelliJ; open `/students` and sign in with
+   `admin` / `12345678` after loading the demo seed if needed.
 2. Create a disposable Student using an English-letter name and digit-only roll.
 3. Click Edit: confirm existing values are filled in.
 4. Change the name/roll and save: confirm the row changes and its ID stays the same. Check `/api/students` for the same change.
@@ -45,23 +61,29 @@ Only a Java compile check is performed during coding. Browser interactions and d
 ### What changed and why
 
 - `002-create-accounts` adds an accounts table. Changeset 001 is preserved because it was already applied. No existing Student records are altered.
-- `Account` contains username, password hash and role. An account is a login identity; linking it to the Student/Teacher profile is the next chunk.
+- `Account` contains username, password hash and role. An account is a login
+  identity linked to a Student or Teacher profile.
 - `SecurityConfig` supplies database-backed `UserDetailsService`, a delegating password encoder (bcrypt for new passwords), and HTTP access rules. Spring Security verifies submitted passwords against hashes. Session form login fits Thymeleaf; HTTP Basic is also available for API testing. CSRF protection remains enabled, including for writes made by API clients.
 - `/students`, `/api/students` and `/admin` paths, including descendants, require ADMIN. `StudentService` and `AccountService` also enforce Admin authority at the method level. Hiding a button is not the permission check.
-- `AdminBootstrap` creates one initial Admin only when none exists. Username is `admin`. With no `FM_ADMIN_PASSWORD` environment variable it generates and prints a random password once. It stores only the hash. Retain this local password; restarting does not generate a replacement. A configured password is used only for initial creation, never for resetting an existing account.
+- `AdminBootstrap` creates one initial Admin only when none exists. For the
+  lab, `demo/seed-demo-data.sql` ensures `admin` / `12345678`; the
+  `FM_ADMIN_PASSWORD` environment variable is an alternate private setup.
 - Admin may create Teacher and Student logins. Duplicate usernames, invalid forms, unsupported roles and overlong bcrypt inputs are rejected. The create form does not let anyone create a second Admin. Passwords are neither displayed in the account list nor repopulated into the form after errors.
-- `/` is a signed-in home page with logout. Teachers/Students currently see a placeholder for the personal-record workflow. Their profile CRUD and account deletion are still required in chunk 2B.
+- `/` is a signed-in home page with logout. Teachers and Students can use their
+  profile, enrollment and marks workflows.
 - Error responses no longer include stack traces or exception messages by default. A 404/403 status remains meaningful without exposing Java internals.
 
 ### Manual test
 
-1. Restart FM School. Find the initial Admin password in the Run console (`INITIAL ADMIN PASSWORD`), or use the configured `FM_ADMIN_PASSWORD` if this is the first creation.
-2. Open `/login` and log in as `admin`. The old `user` login no longer exists.
+1. Start FM School with the demo runner, or load the seed manually. Use
+   `admin` / `12345678`.
+2. Open `/login` and log in as `admin` / `12345678` after loading the demo seed.
 3. Open Manage Students. Confirm existing list/create/edit functionality still works as Admin.
 4. Open Manage Accounts and create one TEACHER and one STUDENT login with passwords of 8–64 characters. Try a duplicate username: expect a readable form error.
 5. Log out using the home page button. Try a wrong password, then the correct Teacher login.
 6. As Teacher, manually open `/students`, `/students/new`, a Student edit URL, `/api/students`, and `/admin/accounts`: expect 403. Repeat with Student. These are collection-management routes, not their future own-record routes.
-7. As either non-Admin account, the home page must work and logout must return to login. The placeholder is expected for this chunk.
+7. As either non-Admin account, the home page and permitted profile workflows
+   must work, and logout must return to login.
 8. Restart and log in with the same Admin credentials: the stored account must remain usable. Check `SELECT username, role, password_hash FROM accounts;` locally if desired: values should be hashes starting with `{bcrypt}`, not the original passwords. Do not publish screenshots of credentials or hashes.
 
 Automated access-rule tests use the real security filter chain with a mocked account repository and isolated test routes. They do not apply migrations, start Docker, or verify browser template rendering. Manual startup verifies those integration points.
@@ -82,9 +104,9 @@ Automated access-rule tests use the real security filter chain with a mocked acc
 ### Manual checks
 
 1. Restart FM School and confirm migration 003 succeeds. Existing account passwords remain unchanged.
-2. Log in as `teacher1`; click Home -> My Profile. Fill Name `Teacher One`, Course `SEPM`; click Save Profile. Expect Profile saved. Refresh and confirm values remain.
-3. Log out from Home and log in as `student1`. Open My Profile; fill Name `Student One`, Roll `0012345`; save. Leading zeros must remain. Try a text roll and confirm validation prevents saving.
-4. Log in as Admin; open Manage Accounts -> Manage Profile beside teacher1/student1. Confirm and edit their saved details.
+2. Log in as `teacher2`; click Home -> My Profile. Fill Name `Teacher One`, Course `SEPM`; click Save Profile. Expect Profile saved. Refresh and confirm values remain.
+3. Log out from Home and log in as `student2`. Open My Profile; fill Name `Student One`, Roll `0012345`; save. Leading zeros must remain. Try a text roll and confirm validation prevents saving.
+4. Log in as Admin; open Manage Accounts -> Manage Profile beside teacher2/student2. Confirm and edit their saved details.
 5. Confirm the managed profile form contains only Name and Roll for a Student; there is no manual Student-ID linking field.
 6. As Teacher/Student, manually request `/admin/accounts/1/profile` or another managed-account URL: expect 403. `/students` remains Admin-only. `/me?id=999` still resolves the logged-in user's own record.
 7. Create a disposable Student login through Admin and complete its profile. As that test user, click Delete Account on My Profile: expect logout; the same credentials must no longer log in. The linked Student disappears while unrelated accounts and Students remain.
@@ -122,22 +144,22 @@ Verification: compilation and 14 security/ownership tests passed. Live browser c
 
 ### Manual test A: Student applies; Teacher accepts
 
-1. Ensure teacher1 and student1 have completed their personal profiles.
-2. Restart FM School. Log out of Admin, then log in as student1.
+1. Ensure teacher2 and student2 have completed their personal profiles.
+2. Restart FM School. Log out of Admin, then log in as student2.
 3. Home -> My Enrollments. Choose Teacher One / SEPM under Apply to a Teacher; click Apply.
 4. Expect PENDING and a success message. The sender must have no Accept/Reject/Remove buttons.
 5. Try Apply again for the same Teacher: expect a pending-request message, not a second row.
-6. Home -> Log out. Log in as teacher1 -> My Enrollments. Find the Student's PENDING application; click Accept.
-7. Expect ACCEPTED, the Student's roll visible, and a Remove button. Log in as student1 again and confirm the same accepted association appears.
+6. Home -> Log out. Log in as teacher2 -> My Enrollments. Find the Student's PENDING application; click Accept.
+7. Expect ACCEPTED, the Student's roll visible, and a Remove button. Log in as student2 again and confirm the same accepted association appears.
 8. Click Remove as one participant. Confirm the association disappears, while both logins and personal profiles remain.
 
 ### Manual test B: Teacher invites; Student accepts/rejects
 
-1. After removing the earlier association, log in as teacher1 -> My Enrollments.
+1. After removing the earlier association, log in as teacher2 -> My Enrollments.
 2. Under Invite a Student, choose Student One and click Invite. Expect PENDING, with no Accept/Reject for the sender.
-3. Log in as student1 -> My Enrollments. Click Reject. Expect REJECTED, with no accepted membership.
-4. Log in as teacher1 and invite that Student again. The same rejected pair becomes PENDING without an extra association row.
-5. Log in as student1 and Accept. Expect ACCEPTED on both accounts.
+3. Log in as student2 -> My Enrollments. Click Reject. Expect REJECTED, with no accepted membership.
+4. Log in as teacher2 and invite that Student again. The same rejected pair becomes PENDING without an extra association row.
+5. Log in as student2 and Accept. Expect ACCEPTED on both accounts.
 
 ### Manual test C: Admin and isolation
 
@@ -195,7 +217,13 @@ Verification: compilation and 38 security, ownership and workflow tests pass. Te
 6. Try an already-used username and an invalid/short password: errors must be readable; the password must be blank when the form is redisplayed.
 7. Log in as Admin: expect the management Home, still with exactly Manage Teachers and Manage Students as the main choices.
 
-Verification: compilation and 69 isolated tests passed, including 16 new signup/service/web checks. A further 16 live checks confirmed both public forms, real account/profile creation, duplicate validation, fixed roles despite a forged ADMIN field, profile-first login for Student/Teacher and Admin home redirect. Three disposable accounts created during live verification were removed; existing users were preserved. Live browser inspection confirmed the Student signup form and navigation links render.
+At this checkpoint, compilation and the isolated signup/service/web checks
+passed. Live checks confirmed both public forms, real account/profile creation,
+duplicate validation, fixed roles despite a forged ADMIN field, profile-first
+login for Student/Teacher and Admin home redirect. Three disposable accounts
+created during live verification were removed; existing users were preserved.
+These counts are historical; run the current test command for authoritative
+results.
 
 
 ## Styling checkpoint: compiled Tailwind + Thymeleaf
@@ -207,9 +235,8 @@ retain their existing actions, DTO bindings, validation and CSRF integration.
 No database migrations or permission changes were required. LayoutAdvice only
 supplies display information.
 
-Run `npm.cmd ci`, then `npm.cmd run css:build` to rebuild, or `npm.cmd run css:watch`
-while editing. Generated CSS is committed so normal lab startup needs no Node
-installation. Read [Styling.md](Styling.md) for file responsibilities and manual
-checks. CSS compilation, 69 existing Java tests, and 19 live page render checks
-passed; signup, teacher profile/enrollments/editing and responsive widths were
-reviewed in the browser. Student-led end-to-end testing remains useful.
+Run `npm.cmd ci`, then `npm.cmd run css:build` to rebuild, or
+`npm.cmd run css:watch` while editing. Generated CSS is committed so normal lab
+startup needs no Node installation. Read [Styling.md](Styling.md) for file
+responsibilities and manual checks. Responsive/mobile behavior is outside the
+current lab scope. Student-led end-to-end testing remains useful.

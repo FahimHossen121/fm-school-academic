@@ -173,6 +173,16 @@ A repeated creation with the same username returns 409; it does not reset that p
 
 ## Verification
 
-53 isolated tests pass, including 14 API contract tests. They cover JSON 401/403, field validation, malformed JSON, creation Location headers, 204 deletes, 404/409 errors, DTO password exclusion, own-profile routing and marks validation.
+At the last API verification checkpoint, 53 isolated tests passed, including 14
+API contract tests. These figures are historical and may change; run the
+current test command for the authoritative result. The tests covered JSON
+401/403, field validation, malformed JSON, creation Location headers, 204
+deletes, 404/409 errors, DTO password exclusion, own-profile routing and marks
+validation.
 
-17 live API checks passed against the running application using disposable Teacher/Student records. They verified create/read/update/delete, real database changes, CSRF token use, Teacher collection denial, scoped enrollment data, unrelated Teacher edit denial and Student marks-write denial. Disposable accounts/profiles were removed afterward; existing user records were not modified. Browser/manual verification is still encouraged for learning.
+At that checkpoint, 17 live API checks passed against the running application
+using disposable Teacher/Student records. The checks verified create/read/update/
+delete, real database changes, CSRF token use, Teacher collection denial,
+scoped enrollment data, unrelated Teacher edit denial and Student marks-write
+denial. Disposable accounts/profiles were removed afterward; existing records
+were not modified. Browser/manual verification is still encouraged for learning.

@@ -130,16 +130,27 @@ All remaining terminal commands in this guide assume you are in that folder, bes
 
 Wait for Maven sync to finish before interpreting unresolved-import messages as code errors.
 
-### 3.4 Prepare the initial Admin password
+### 3.4 Prepare the demo Admin
 
-The first startup against a new database creates the single Admin. To choose its password beforehand:
+For the fastest lab demonstration, do not configure `FM_ADMIN_PASSWORD`. Run
+the application once so Liquibase creates the tables, then run the seed command
+in `demo/seed-demo-data.sql`. The seed ensures the demo Admin is:
 
-1. Open **Run → Edit Configurations** and select **FM School**.
-2. Find **Environment variables**; use **Modify options** if the field is hidden.
-3. Add `FM_ADMIN_PASSWORD` with a password you will remember: 8–64 characters, at most 72 UTF-8 bytes.
-4. Keep this setting local. Do not save a real password into the shared `.run/FM School.run.xml` or commit it.
+```text
+Username: admin
+Password: 12345678
+```
 
-If you do not provide that variable, `AdminBootstrap` generates a password and prints **INITIAL ADMIN PASSWORD** once in the Run console. Save it privately. It is not regenerated on later startups. Setting `FM_ADMIN_PASSWORD` after an Admin already exists does not reset that account.
+The seed also creates the demo Teachers, Students and accepted enrollments. The
+complete runner is `run-demo.ps1`:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\run-demo.ps1
+```
+
+`FM_ADMIN_PASSWORD` remains available for a private non-demo database, but it
+is not needed for the lab seed. Never commit a real password or database dump.
 
 ### 3.5 Start PostgreSQL
 
@@ -188,12 +199,9 @@ The project files and the database are separate. GitHub transfers Java code, tem
 
 `AdminBootstrap` creates `admin` only when the selected database has no Admin. It prints a generated password only during that first creation. Setting `FM_ADMIN_PASSWORD` later does not reset an existing Admin password. The private `admin-login.local.txt` file is useful only for the database for which that password was created; do not copy it to GitHub or assume it works against a fresh database.
 
-For a **fresh database with no records**, set `FM_ADMIN_PASSWORD` before the first Java startup:
-
-1. Stop Java and start PostgreSQL.
-2. In IntelliJ **Run → Edit Configurations**, add `FM_ADMIN_PASSWORD` with an 8–64 character password.
-3. Start FM School once and log in as `admin`.
-4. Keep that password private. It is used only when the first Admin is created.
+For a **fresh lab demo database**, run the seed after the first successful
+startup. It resets the demo Admin password to `12345678` and leaves
+Teacher/Student passwords and profiles unchanged.
 
 If the database already contains an Admin and its password is lost, do not keep changing the environment variable. Restore a backup, or deliberately create a new empty lab database. Never delete a volume before confirming that its data is backed up.
 
@@ -264,7 +272,13 @@ Get-Content -LiteralPath .\demo\seed-demo-data.sql | docker compose exec -T post
 | teacher5 / teacher5 | Demo Course 5 | student11, student12, student13 |
 | teacher6 / teacher6 | Demo Course 6 | student14, student15, student16 |
 
-The seed also ensures `admin` has password `12345678`, even if `AdminBootstrap` created a random Admin during the first startup. Each Student and Teacher password equals its username. The script is optional, not a startup migration. It stores bcrypt hashes and creates 15 accepted associations. It does not reset Teacher/Student passwords or edited profiles. Re-running it is not a way to reset a test; it can recreate removed demo associations, and conflicts with another accepted course abort the transaction. Read `demo/README.md` before rerunning it.
+The seed also ensures `admin` has password `12345678`, even if
+`AdminBootstrap` created a random Admin during the first startup. Each Student
+and Teacher password equals its username. It stores bcrypt hashes and creates
+15 accepted associations. It does not reset Teacher/Student passwords or
+edited profiles. Re-running it is not a way to reset a test; it can recreate
+removed demo associations, and conflicts with another accepted course abort the
+transaction. Read `demo/README.md` before rerunning it.
 
 ## 5. Everyday startup, shutdown and Git
 
@@ -741,7 +755,8 @@ Create a disposable Student, save phone, reopen it, restart and reopen again. Tr
 
 ### Automated tests
 
-The focused suite currently contains **69 tests**:
+The focused suite contains the workflow test classes below. The exact test
+count may change as features are added:
 
 | Test class | Checks |
 |---|---|
@@ -758,7 +773,10 @@ In a terminal with JDK 25 configured:
 .\mvnw.cmd '-Dtest=SecurityRulesTests,ProfileOwnershipTests,EnrollmentWorkflowTests,ApiContractTests,SignupServiceTests,SignupWebTests' test
 ```
 
-If Maven Wrapper has the known environment/import problem, use IntelliJ's bundled Maven: open the Maven tool window, choose **Execute Maven Goal**, and enter the same `-Dtest=... test` arguments. Alternatively run the selected test classes from their gutter icons. A separate generated FmSchoolApplicationTests context test may start the full application/database; it is not part of the isolated 69-test command above.
+If Maven Wrapper has an environment problem, use IntelliJ's bundled Maven:
+open the Maven tool window, choose **Execute Maven Goal**, and enter the same
+`-Dtest=... test` arguments. Alternatively run the selected test classes from
+their gutter icons.
 
 Passing isolated tests does not replace testing the running UI/database. After editing, test the feature you changed and one permission boundary.
 
@@ -924,15 +942,17 @@ On a fresh destination whose tables have been created by the same migrations, co
 
 Current implementation uses common layered Spring patterns, password hashing, server validation, migrations, role/ownership checks and CSRF. This is still an academic demo: real identity verification, password recovery UI, audit logging, production deployment hardening and application Docker packaging are not completed features. Demo passwords are intentionally public. Do not describe this as a production-ready school system.
 
-Verification at this checkpoint: Tailwind compiled; all 69 selected Java tests passed; 19 running HTML-page checks passed across anonymous/Admin/Teacher/Student routes; invalid signup displayed styled errors; anonymous access to the compiled stylesheet worked. Browser review included signup and Teacher profile/enrollments/edit forms. This does not claim every manual workflow was repeated during styling or that a separate lab PC was tested.
+Run the focused test command after changes and perform the fast runner workflow
+before the lab demonstration. Exact test totals and live-check counts are not
+hard-coded here because they change as the project evolves.
 
 Before leaving for lab:
 
 - [ ] Push source and generated CSS; confirm GitHub has the latest commit.
 - [ ] Know the repository URL and which folder to open.
-- [ ] Know the initial Admin-password procedure; keep passwords private.
+- [ ] Know the seeded Admin login: `admin` / `12345678`.
 - [ ] Be able to start Docker, check PostgreSQL, and run FM School.
-- [ ] Load demo data on a fresh database if needed.
+- [ ] Run `run-demo.ps1` and confirm the demo data loads.
 - [ ] Practice Student signup, a request, recipient acceptance and Teacher marks editing.
 - [ ] Demonstrate that an unrelated Teacher/Student cannot edit another record.
 - [ ] Locate a Controller, Service, DTO, Entity, Repository, template and migration without help.
