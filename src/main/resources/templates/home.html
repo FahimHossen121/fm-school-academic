@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>FM School</title></head>
+<body>
+<h1>FM School</h1>
+<p>Signed in as <strong th:text="${username}"></strong></p>
+<p th:text="${roles}"></p>
+<nav th:if="${isAdmin}">
+    <a th:href="@{/admin/teachers}">Manage Teachers</a>
+    <a th:href="@{/admin/students}">Manage Students</a>
+</nav>
+<p th:unless="${isAdmin}"><a th:href="@{/me}">My Profile</a></p>
+<p th:unless="${isAdmin}"><a th:href="@{/enrollments}">My Enrollments</a></p>
+<form th:action="@{/logout}" method="post"><button type="submit">Log out</button></form>
+</body>
+</html>
