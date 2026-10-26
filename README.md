@@ -22,10 +22,11 @@ A school management project for SEPM lab, developed step by step to learn Spring
 - `/api/hello` returned JSON in the demonstrated run.
 - The basic Student entity and repository are written.
 - The Student migration was verified; Student creation, listing and editing have been demonstrated. Deletion is implemented and awaits manual confirmation.
-- Database-backed accounts, hashed passwords, login/logout and Admin-only Student/account management are implemented in chunk 2A, pending browser verification.
+- Database-backed accounts, hashed passwords, login/logout and Admin-only management are implemented and verified through automated and live checks.
 - Teacher/Student personal profiles and account deletion are implemented in chunk 2B.
 - Chunk 3 implements applications, invitations, recipient-only acceptance/rejection, association removal and Admin control. The associated Teacher may edit Student name/roll and course marks (0–100). Attendance is out of scope.
 - Tailwind compilation is not configured yet.
+- Public Student/Teacher signup creates a login and complete personal profile together. Students and Teachers land on `/me` after login; Admin lands on `/`.
 
 ### Login after chunk 2A
 
@@ -37,7 +38,15 @@ Log in at `/login`. Admin Home has exactly two management choices: **Manage Teac
 
 Teacher/Student Home links to **My Enrollments** (`/enrollments`). Students apply to Teachers; Teachers invite Students. Only the recipient may accept/reject pending requests. Admin can manage all requests and directly create accepted associations through **Manage Enrollments** inside either management section. Each Student may have only one accepted course; a Teacher may have many Students. Participants may remove an accepted association without deleting either account. Rejected requests may be sent again; duplicate pending/accepted pairs are blocked. The associated Teacher (or Admin) may use **Edit Student** to edit name, roll and marks; the Student sees marks read-only. Name/roll changes do not change the login username or password.
 
-## Run on another PC
+## Public signup
+
+The login page links to `/signup/student` and `/signup/teacher`. Student signup requires username, password, name and roll; Teacher signup requires username, password, name and course. Passwords are 8–64 characters (at most 72 UTF-8 bytes). No identity verification is required for this lab project. Duplicate usernames and invalid input are rejected. Registration returns to login with a success message; signing in then opens the new personal profile.
+
+Public forms never offer Admin signup. The endpoint fixes the role, and submitted role/account-ID fields are not bound. Account/profile creation is transactional; passwords are hashed and not echoed back after validation errors. CSRF is required even though signup pages are public.
+
+Students and Teachers always land on My Profile after form login, with My Enrollments and Log out links on that page. Admin always lands on the two-section management home. This deliberate redirect overrides any previously saved protected-page request.
+
+## Setup and API reference
 
 The [JSON API guide](docs/JSON%20API%20Guide.md) documents Student/Teacher CRUD, personal profiles, enrollment actions, permissions, statuses and PowerShell examples. All API writes retain CSRF protection.
 
