@@ -39,6 +39,8 @@ Teacher/Student Home links to **My Enrollments** (`/enrollments`). Students appl
 
 ## Run on another PC
 
+The [JSON API guide](docs/JSON%20API%20Guide.md) documents Student/Teacher CRUD, personal profiles, enrollment actions, permissions, statuses and PowerShell examples. All API writes retain CSRF protection.
+
 Follow [the fresh-PC setup guide](docs/Run%20on%20a%20Fresh%20PC.md).
 
 GitHub stores committed project files. Existing PostgreSQL volume contents do not travel with the repository. Migrations reproduce the schema once implemented; existing records need sample data or a separate export/import procedure.
