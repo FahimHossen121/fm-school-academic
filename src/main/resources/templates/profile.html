@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Profile | FM School</title></head>
+<body>
+<h1 th:text="${adminMode ? 'Manage Profile' : 'My Profile'}"></h1>
+<p>Account: <strong th:text="${profile.username}"></strong>
+    (<span th:text="${profile.role}"></span>)</p>
+<p th:if="${profile.recordId != null}">Record ID: <span th:text="${profile.recordId}"></span></p>
+<p th:if="${param.saved}" role="status">Profile saved.</p>
+<form th:action="@{${savePath}}" th:object="${profileForm}" method="post">
+    <ul th:if="${#fields.hasAnyErrors()}">
+        <li th:each="error : ${#fields.allErrors()}" th:text="${error}"></li>
+    </ul>
+    <p><label for="name">Name</label>
+        <input id="name" type="text" th:field="*{name}"></p>
+    <p th:if="${isStudent}"><label for="roll">Roll</label>
+        <input id="roll" type="text" th:field="*{roll}"></p>
+    <p th:unless="${isStudent}"><label for="course">Course</label>
+        <input id="course" type="text" th:field="*{course}"></p>
+    <button type="submit">Save Profile</button>
+</form>
+<h2 th:text="${adminMode ? 'Delete this account' : 'Delete my account'}"></h2>
+<p>This removes the login and its linked personal record. Other accounts remain.</p>
+<form th:action="@{${deletePath}}" method="post">
+    <button type="submit">Delete Account</button>
+</form>
+<a th:href="@{/}">Home</a>
+<a th:if="${adminMode}" th:href="@{${managementPath}}"
+   th:text="${isStudent ? 'Back to Students' : 'Back to Teachers'}"></a>
+</body>
+</html>
