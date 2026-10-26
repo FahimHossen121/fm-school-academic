@@ -13,6 +13,8 @@ import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 @Configuration
 @EnableMethodSecurity
@@ -35,18 +37,31 @@ public class SecurityConfig {
     }
 
     @Bean
+    public AuthenticationSuccessHandler roleLoginSuccessHandler() {
+        return (request, response, authentication) -> {
+            boolean admin = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            var handler = new SavedRequestAwareAuthenticationSuccessHandler();
+            handler.setAlwaysUseDefaultTargetUrl(true);
+            handler.setDefaultTargetUrl(admin ? "/" : "/me");
+            handler.onAuthenticationSuccess(request, response, authentication);
+        };
+    }
+
+    @Bean
     @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
-                        .requestMatchers("/login", "/css/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/login", "/signup", "/signup/student", "/signup/teacher",
+                                "/css/**", "/favicon.ico").permitAll()
                         .requestMatchers("/students", "/students/**",
                                 "/api/students", "/api/students/**",
                                 "/admin", "/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .formLogin(form -> form.loginPage("/login")
-                        .defaultSuccessUrl("/", true).permitAll())
+                        .successHandler(roleLoginSuccessHandler()).permitAll())
                 .httpBasic(Customizer.withDefaults())
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout"))
                 .build();
