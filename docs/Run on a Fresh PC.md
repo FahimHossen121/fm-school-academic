@@ -1,5 +1,7 @@
 # FM School: run on a fresh Windows PC
 
+> **26 October 2026 update — chunk 2A:** Student migration, creation/listing and editing have since been demonstrated. Account security is now implemented and awaits manual startup verification. Old stopping-point notes below describe earlier checkpoints. The old default `user` login is replaced: use `admin` with the `INITIAL ADMIN PASSWORD` printed once on first account creation, or the `FM_ADMIN_PASSWORD` you set before that creation. Passwords persist and are not regenerated on each run. See the README and Feature Chunks guide for current checks. Teacher/Student own-profile access is the next chunk. The repository is `https://github.com/FahimHossen121/fm-school-academic.git`; use this actual URL in clone commands instead of the older placeholder.
+
 This guide explains how to download the project from GitHub, prepare a Windows lab PC, and run the same application there. It records the current setup on 9 October 2026. Replace `YOUR_USERNAME` in example URLs with the repository owner's GitHub username.
 
 The project is still being built. The working endpoint is `/api/hello`. Student CRUD, custom accounts/roles, Tailwind compilation, and the first verified Liquibase migration are not complete. Downloading the source does not complete those features.
