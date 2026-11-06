@@ -788,7 +788,7 @@ open the Maven tool window, choose **Execute Maven Goal**, and enter the same
 their gutter icons.
 
 Use `mvn verify` for the full suite. The integration tests need a dedicated PostgreSQL
-database on port 55432. The [short project guide](latex/FM%20School%20Guide.pdf)
+database on port 55432. The [LaTeX project guide](latex/FM%20School%20Guide.pdf)
 explains local database setup and GitHub Actions. `EnrollmentPersistenceIT`
 checks course transfer, rollback, and Teacher deletion. `FmSchoolApplicationIT`
 checks startup.

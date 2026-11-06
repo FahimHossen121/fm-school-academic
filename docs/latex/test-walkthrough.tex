@@ -1,0 +1,566 @@
+\clearpage
+\section{Six unit tests in code}\label{sec:unitcode}
+Each listing contains the complete test method. The fixture code below gives
+those methods a Student, a Teacher, and a pending application. The tests call
+\code{EnrollmentService} directly.
+
+\subsection{Set up the service and its inputs}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L33-L37}{\code{EnrollmentServiceUnitTests.java}, lines 33--37}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=33]
+private final EnrollmentRepository enrollments = mock(EnrollmentRepository.class);
+private final AccountRepository accounts = mock(AccountRepository.class);
+private final TeacherRepository teachers = mock(TeacherRepository.class);
+private final StudentRepository students = mock(StudentRepository.class);
+private final EnrollmentService service = new EnrollmentService(enrollments, accounts, teachers, students);
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L45-L63}{\code{EnrollmentServiceUnitTests.java}, lines 45--63}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=45]
+@BeforeEach
+void setUp() {
+    teacherAccount = account(2L, "teacher1", Role.TEACHER);
+    studentAccount = account(3L, "student1", Role.STUDENT);
+    teacher = new Teacher();
+    teacher.setId(10L);
+    teacher.setAccount(teacherAccount);
+    student = student(20L, "Student One", studentAccount);
+    application = enrollment(7L, teacher, EnrollmentStatus.PENDING);
+
+    when(enrollments.findStudentId(7L)).thenReturn(Optional.of(20L));
+    when(students.findLockedById(20L)).thenReturn(Optional.of(student));
+    when(enrollments.findLockedById(7L)).thenReturn(Optional.of(application));
+}
+
+@AfterEach
+void clearAuthentication() {
+    SecurityContextHolder.clearContext();
+}
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L159-L169}{\code{EnrollmentServiceUnitTests.java}, lines 159--169}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=159]
+private void signInAs(Account account) {
+    when(accounts.findByUsername(account.getUsername())).thenReturn(Optional.of(account));
+    SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(
+            account.getUsername(), null, "ROLE_" + account.getRole().name()));
+}
+
+private static ResponseStatusException assertStatus(HttpStatus status, Runnable action) {
+    var error = assertThrows(ResponseStatusException.class, action::run);
+    assertEquals(status, error.getStatusCode());
+    return error;
+}
+\end{lstlisting}
+
+
+\begin{itemize}
+\item The four repository mocks stand in for database calls. The service itself
+is the real implementation.
+\item \code{setUp()} runs before every test. Teacher account 2 owns Teacher
+profile 10. Student account 3 owns Student profile 20. Application 7 connects
+them and starts as a request from the Student.
+\item The three repository stubs let the service follow application 7 to
+Student 20 and load the same application object. Mockito supplies those
+values when the service calls the repository.
+\item \code{signInAs} sets the test identity and stubs account lookup.
+The cleanup method clears the security context after each test.
+\end{itemize}
+
+\clearpage
+\subsection{U1. An acceptance retry must leave the original result intact}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L65-L77}{\code{EnrollmentServiceUnitTests.java}, lines 65--77}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=65]
+@Test
+void retryingAcceptanceReturnsConflictWithoutSavingAgain() {
+    signInAs(teacherAccount);
+
+    service.respond(7L, true);
+    assertEquals(EnrollmentStatus.ACCEPTED, application.getStatus());
+    verify(enrollments).save(application);
+    clearInvocations(enrollments);
+
+    assertStatus(HttpStatus.CONFLICT, () -> service.respond(7L, true));
+    assertEquals(EnrollmentStatus.ACCEPTED, application.getStatus());
+    verify(enrollments, never()).save(any());
+}
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item \textbf{Arrange.} Sign in as the Teacher who received the pending
+application. Use the shared application with ID 7.
+\item \textbf{Act the first time.} \code{respond(7L, true)} accepts the
+application. Check that it is accepted and that the service called
+\code{save(application)}.
+\item \textbf{Separate the two calls.} \code{clearInvocations} clears Mockito's
+recorded calls while keeping its stubs and the accepted application object.
+The next verification now measures only the retry.
+\item \textbf{Act again and assert.} Expect 409. Check the same record still
+says accepted and verify that no repository save followed the retry.
+\end{enumerate}
+
+\textbf{Why it matters.}
+A user can click twice or retry a request after a slow response. The service
+must recognize that the first acceptance already took effect. Checking the
+exception alone would miss a second write.
+
+\textbf{Find the production guard.}
+In \code{EnrollmentService.respond}, the guard requires \code{PENDING}.
+The first call changes the status to \code{ACCEPTED}. The retry stops at the
+guard before reaching \code{enrollments.save}.
+
+\clearpage
+\subsection{U2. A rejected application can reopen as an invitation}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L79-L100}{\code{EnrollmentServiceUnitTests.java}, lines 79--100}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=79]
+@Test
+void rejectedApplicationReopensAsInvitationWithStudentAsRecipient() {
+    signInAs(teacherAccount);
+    service.respond(7L, false);
+    assertEquals(EnrollmentStatus.REJECTED, application.getStatus());
+
+    when(teachers.findByAccountId(2L)).thenReturn(Optional.of(teacher));
+    when(enrollments.findLockedPair(10L, 20L)).thenReturn(Optional.of(application));
+    clearInvocations(enrollments);
+
+    service.invite(20L);
+
+    assertEquals(EnrollmentStatus.PENDING, application.getStatus());
+    assertEquals(Role.TEACHER, application.getRequestedBy());
+    verify(enrollments).save(same(application));
+    assertStatus(HttpStatus.FORBIDDEN, () -> service.respond(7L, true));
+    assertEquals(EnrollmentStatus.PENDING, application.getStatus());
+
+    signInAs(studentAccount);
+    service.respond(7L, true);
+    assertEquals(EnrollmentStatus.ACCEPTED, application.getStatus());
+}
+\end{lstlisting}
+
+
+\begin{tabularx}{\linewidth}{@{}p{.23\linewidth}p{.22\linewidth}Y@{}}
+\toprule
+Action & Stored status & Sender and next actor \\
+\midrule
+Student applies & Pending & Student sends. Teacher may respond. \\
+Teacher rejects & Rejected & A new request can reopen the same pair. \\
+Teacher invites & Pending & Teacher sends. Student may respond. \\
+Student accepts & Accepted & The association is now active. \\
+\bottomrule
+\end{tabularx}
+
+\begin{itemize}
+\item The Teacher first acts as recipient. After rejecting, the mock returns
+the same row for that Teacher--Student pair.
+\item \code{verify(...).save(same(application))} checks object identity. This
+catches replacing the rejected row with a different object.
+\item The invitation changes both the status and \code{requestedBy}. The
+Teacher's attempt to accept it now gets 403. The Student then accepts it.
+\end{itemize}
+
+\textbf{Viva point.}
+The owner of the right to respond changes when the sender changes. Merely
+checking for \code{PENDING} would miss that rule.
+
+\clearpage
+\subsection{U3. Show only eligible Students in the Teacher's picker}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L102-L114}{\code{EnrollmentServiceUnitTests.java}, lines 102--114}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=102]
+@Test
+void teacherPickerExcludesOccupiedStudentsAndProfilesWithoutAccounts() {
+    signInAs(teacherAccount);
+    when(teachers.findByAccountId(2L)).thenReturn(Optional.of(teacher));
+    Student occupied = student(21L, "Occupied", account(4L, "occupied", Role.STUDENT));
+    Student legacy = student(22L, "Legacy", null);
+    when(students.findAll()).thenReturn(List.of(student, occupied, legacy));
+    when(enrollments.findStudentIdsByStatus(EnrollmentStatus.ACCEPTED)).thenReturn(List.of(21L));
+
+    var board = service.getBoard();
+
+    assertEquals(List.of(new EnrollmentService.StudentOption(20L, "Student One")), board.students());
+}
+\end{lstlisting}
+
+
+The repository returns three Students. The test marks profile 21 as already
+enrolled and gives profile 22 no account. Comparing the entire returned list
+proves both exclusions and confirms that profile 20 remains selectable.
+
+\subsection{U4. Keep pending rows visible when a Student has a course}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L116-L131}{\code{EnrollmentServiceUnitTests.java}, lines 116--131}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=116]
+@Test
+void enrolledStudentKeepsPendingRowsButCannotPickANewTeacher() {
+    signInAs(studentAccount);
+    when(students.findByAccountId(3L)).thenReturn(Optional.of(student));
+    Teacher otherTeacher = new Teacher();
+    otherTeacher.setId(11L);
+    Enrollment accepted = enrollment(8L, otherTeacher, EnrollmentStatus.ACCEPTED);
+    when(enrollments.findForAccount(3L)).thenReturn(List.of(application, accepted));
+    when(teachers.findAll()).thenReturn(List.of(teacher, otherTeacher));
+
+    var board = service.getBoard();
+
+    assertTrue(board.teachers().isEmpty());
+    assertEquals(List.of(7L, 8L), board.rows().stream().map(EnrollmentService.Row::id).toList());
+    assertEquals(EnrollmentStatus.PENDING, board.rows().getFirst().status());
+}
+\end{lstlisting}
+
+
+The existing accepted row empties the Teacher picker. The two row IDs prove that
+the board still shows both relationships, and the status assertion confirms the
+older request stays pending.
+
+\textbf{The distinction.}
+The picker answers whom the user can apply to now. The rows show existing
+requests and enrollments. Filtering the picker should leave that history visible.
+
+\clearpage
+\subsection{U5. Clearing a mark returns the enrollment to ungraded}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L133-L146}{\code{EnrollmentServiceUnitTests.java}, lines 133--146}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=133]
+@Test
+void clearingAnExistingMarkRestoresTheUngradedState() {
+    signInAs(teacherAccount);
+    application.setStatus(EnrollmentStatus.ACCEPTED);
+    application.setMarks(new BigDecimal("78.25"));
+    EnrolledStudentForm form = new EnrolledStudentForm();
+    form.setName(student.getName());
+    form.setRoll(student.getRoll());
+
+    service.updateEnrolledStudent(7L, form);
+
+    assertNull(application.getMarks());
+    verify(enrollments).save(application);
+}
+\end{lstlisting}
+
+
+The accepted enrollment starts with 78.25. The form keeps the profile fields
+and leaves marks unset. The service sets the mark to null and saves the
+enrollment. This catches a change that would store zero or retain 78.25.
+
+\subsection{U6. A Teacher without a profile cannot invite}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L148-L157}{\code{EnrollmentServiceUnitTests.java}, lines 148--157}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=148]
+@Test
+void teacherWithAnAccountButNoProfileCannotSendAnInvitation() {
+    signInAs(teacherAccount);
+    when(teachers.findByAccountId(2L)).thenReturn(Optional.empty());
+
+    var conflict = assertStatus(HttpStatus.CONFLICT, () -> service.invite(20L));
+
+    assertEquals("Complete My Profile before inviting", conflict.getReason());
+    verify(enrollments, never()).save(any());
+}
+\end{lstlisting}
+
+
+The account exists and has the Teacher role. \code{findByAccountId(2L)} returns
+empty, so the service rejects the invite with the profile-completion message.
+\code{never().save(any())} verifies there was no enrollment write.
+
+\textbf{Why check the reason?}
+Several enrollment rules can return 409. The reason proves that the missing
+profile caused the conflict.
+
+\clearpage
+\subsection{Read the fixture helpers}
+These builders create plain entity objects. Fixed IDs make the scenarios
+readable. The integration tests use database-generated IDs instead.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L171-L196}{\code{EnrollmentServiceUnitTests.java}, lines 171--196}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=171]
+private Enrollment enrollment(long id, Teacher assignedTeacher, EnrollmentStatus status) {
+    Enrollment enrollment = new Enrollment();
+    enrollment.setId(id);
+    enrollment.setTeacher(assignedTeacher);
+    enrollment.setStudent(student);
+    enrollment.setRequestedBy(Role.STUDENT);
+    enrollment.setStatus(status);
+    return enrollment;
+}
+
+private static Account account(long id, String username, Role role) {
+    Account account = new Account();
+    account.setId(id);
+    account.setUsername(username);
+    account.setRole(role);
+    return account;
+}
+
+private static Student student(long id, String name, Account account) {
+    Student student = new Student();
+    ReflectionTestUtils.setField(student, "id", id);
+    student.setName(name);
+    student.setRoll("00123");
+    student.setAccount(account);
+    return student;
+}
+\end{lstlisting}
+
+
+\begin{itemize}
+\item \code{enrollment} connects the supplied Teacher to the shared Student.
+Every fixture starts with the Student as sender unless the test changes it.
+\item \code{account} supplies the identity the service will resolve during the
+test. The Teacher profile's ID and the Teacher account's ID are separate values.
+\item \code{student} sets the generated ID through Spring's test utility because
+the production entity has no ID setter. Passing null for the account creates
+the legacy profile used by U3.
+\end{itemize}
+
+To run just these six tests from Windows PowerShell with JDK 25 configured:
+\begin{lstlisting}[style=commands]
+.\mvnw.cmd '-Dtest=EnrollmentServiceUnitTests' test
+\end{lstlisting}
+
+\clearpage
+\section{Three integration tests in code}\label{sec:itcode}
+
+\subsection{Start a real application context and use a test database}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L24-L35}{\code{EnrollmentPersistenceIT.java}, lines 24--35}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=24]
+@SpringBootTest
+@ActiveProfiles("integration")
+class EnrollmentPersistenceIT {
+    private static final String TEST_PASSWORD = "TestPass123!";
+    @Autowired private WebApplicationContext context;
+    @Autowired private JdbcTemplate db;
+    private MockMvc mvc;
+
+    @BeforeEach
+    void setUp() {
+        mvc = webAppContextSetup(context).apply(springSecurity()).build();
+    }
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/resources/application-integration.properties#L1-L5}{\code{application-integration.properties}, lines 1--5}}
+\begin{lstlisting}[style=source,language=YAML,firstnumber=1]
+# Use a dedicated database for integration tests. Liquibase builds the schema.
+spring.docker.compose.enabled=false
+spring.datasource.url=jdbc:postgresql://127.0.0.1:55432/fm_school_test
+spring.datasource.username=fm_school_test
+spring.datasource.password=fm_school_test
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item \code{@SpringBootTest} loads the controllers, security, services,
+repositories, and Liquibase.
+\item \code{@ActiveProfiles("integration")} selects a dedicated PostgreSQL
+database at port 55432. The profile disables the app's usual Compose startup.
+The test database is supplied by the local disposable container or GitHub Actions.
+\item \code{webAppContextSetup} builds MockMvc from the real application context.
+\code{springSecurity()} attaches the filter chain. The request runs inside the
+test process.
+\item \code{JdbcTemplate} checks stored rows after requests finish. These tests
+let service transactions commit or roll back normally so the query can check
+what actually persisted.
+\end{enumerate}
+
+\textbf{Identity and CSRF.}
+\code{with(user(...).roles(...))} supplies the authenticated test identity.
+The service still resolves that username against a real account. \code{with(csrf())}
+supplies the token needed for a write. I3 also sends a login request with the
+stored Student's original password.
+
+\textbf{Where the files run.}
+Maven Failsafe finds classes ending in \code{IT} during \code{verify}. The
+existing startup check and the three scenarios run in this phase.
+
+\clearpage
+\subsection{Create fixtures through the API}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L98-L126}{\code{EnrollmentPersistenceIT.java}, lines 98--126}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=98]
+private Person createPerson(String collection, String name) throws Exception {
+    String username = testUsername();
+    String body = """
+            {"username":"%s","password":"%s","profile":{"name":"%s","roll":"00123","course":"SEPM"}}
+            """.formatted(username, TEST_PASSWORD, name);
+    mvc.perform(post("/api/" + collection).with(user("admin").roles("ADMIN")).with(csrf())
+                    .contentType("application/json").content(body))
+            .andExpect(status().isCreated());
+    String query = collection.equals("students")
+            ? "select s.id from students s join accounts a on s.account_id = a.id where a.username = ?"
+            : "select t.id from teachers t join accounts a on t.account_id = a.id where a.username = ?";
+    return new Person(db.queryForObject(query, Long.class, username), username);
+}
+
+private long apply(Person student, Person teacher) throws Exception {
+    mvc.perform(post("/api/enrollments/applications")
+                    .with(user(student.username()).roles("STUDENT")).with(csrf())
+                    .contentType("application/json")
+                    .content("{\"teacherId\":" + teacher.profileId() + "}"))
+            .andExpect(status().isCreated());
+    return db.queryForObject("select id from enrollments where student_id = ? and teacher_id = ?",
+            Long.class, student.profileId(), teacher.profileId());
+}
+
+private void accept(Person teacher, long id, int expectedStatus) throws Exception {
+    mvc.perform(post("/api/enrollments/{id}/accept", id)
+                    .with(user(teacher.username()).roles("TEACHER")).with(csrf()))
+            .andExpect(status().is(expectedStatus));
+}
+\end{lstlisting}
+
+
+\begin{itemize}
+\item \code{createPerson} posts to the Admin API and expects 201. The test
+looks up the new profile ID by joining it to the account's unique username.
+\item \code{apply} posts the Teacher profile ID as the Student. The following
+query retrieves the new enrollment ID for that pair.
+\item \code{accept} calls the enrollment route as the specified Teacher and
+checks the expected response. The same helper handles successful and
+conflicting attempts.
+\end{itemize}
+
+The usernames include UUIDs. This keeps fixture names distinct when tests run
+again against the same disposable database.
+
+\clearpage
+\subsection{I1. A Student can transfer only after leaving the first course}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L37-L60}{\code{EnrollmentPersistenceIT.java}, lines 37--60}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=37]
+@Test
+void studentCanTransferOnlyAfterLeavingTheAcceptedCourse() throws Exception {
+    var student = createPerson("students", "Student");
+    var first = createPerson("teachers", "First Teacher");
+    var second = createPerson("teachers", "Second Teacher");
+    long firstRequest = apply(student, first);
+    long secondRequest = apply(student, second);
+
+    accept(first, firstRequest, 200);
+    accept(second, secondRequest, 409);
+
+    assertEquals("ACCEPTED", enrollmentStatus(firstRequest));
+    assertEquals("PENDING", enrollmentStatus(secondRequest));
+
+    mvc.perform(delete("/api/enrollments/{id}", firstRequest)
+                    .with(user(student.username()).roles("STUDENT")).with(csrf()))
+            .andExpect(status().isNoContent());
+    accept(second, secondRequest, 200);
+
+    assertEquals(0, count("select count(*) from enrollments where id = ?", firstRequest));
+    assertEquals("ACCEPTED", enrollmentStatus(secondRequest));
+    assertEquals(1, count("select count(*) from enrollments where student_id = ? and status = 'ACCEPTED'",
+            student.profileId()));
+}
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item Create one Student and two Teachers. Submit two applications before
+accepting either one. This builds two real pending rows.
+\item Accept the first application and expect 200. Accepting the second now
+returns 409. Queries confirm the first remains accepted and the second remains
+pending.
+\item Remove the first enrollment as the Student. Expect 204. The second
+acceptance now succeeds because the first association is gone.
+\item Check that the old row was deleted, the second row is accepted, and the
+Student has exactly one accepted enrollment.
+\end{enumerate}
+
+\textbf{What this proves.}
+The rule is enforced across separate requests and committed database state. A
+failed acceptance leaves the pending row available after the Student leaves
+the original course.
+
+\clearpage
+\subsection{I2. A failed profile save rolls back the account}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L62-L75}{\code{EnrollmentPersistenceIT.java}, lines 62--75}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=62]
+@Test
+void teacherCreationRollsBackTheAccountWhenCourseIsMissing() throws Exception {
+    String username = testUsername();
+    String body = """
+            {"username":"%s","password":"%s","profile":{"name":"Test Teacher"}}
+            """.formatted(username, TEST_PASSWORD);
+
+    mvc.perform(post("/api/teachers").with(user("admin").roles("ADMIN")).with(csrf())
+                    .contentType("application/json").content(body))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Course is required"));
+
+    assertEquals(0, count("select count(*) from accounts where username = ?", username));
+}
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item Build valid account data with a unique username and a valid profile name.
+Omit only the course. The request can reach the service's role-specific rule.
+\item Post the request as Admin with a CSRF token. Check 400 and the message
+\code{Course is required}. That confirms the profile save rejected this request.
+\item Query the accounts table by username. A count of zero proves the identity
+created earlier in the transaction was rolled back.
+\end{enumerate}
+
+\textbf{Walk through the call chain.}
+\code{TeacherApiController} invokes \code{PeopleApiService.createTeacher}.
+The service creates the identity, then calls \code{updateManagedProfile}.
+The missing course throws an exception inside the transaction. PostgreSQL
+rolls back the account insert, and the exception handler returns 400.
+
+\textbf{Why query the database?}
+A controller could return the expected status even if it left an account
+behind. The query detects that partial write.
+
+\clearpage
+\subsection{I3. Delete a Teacher and keep the Student's login usable}
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L77-L96}{\code{EnrollmentPersistenceIT.java}, lines 77--96}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=77]
+@Test
+void deletingATeacherRemovesTheEnrollmentButStudentCanStillSignIn() throws Exception {
+    var student = createPerson("students", "Student");
+    var teacher = createPerson("teachers", "Teacher");
+    long request = apply(student, teacher);
+    accept(teacher, request, 200);
+    assertEquals("ACCEPTED", enrollmentStatus(request));
+
+    mvc.perform(delete("/api/teachers/{id}", teacher.profileId())
+                    .with(user("admin").roles("ADMIN")).with(csrf()))
+            .andExpect(status().isNoContent());
+
+    assertEquals(0, count("select count(*) from accounts where username = ?", teacher.username()));
+    assertEquals(0, count("select count(*) from teachers where id = ?", teacher.profileId()));
+    assertEquals(0, count("select count(*) from enrollments where id = ?", request));
+    assertEquals(1, count("select count(*) from students where id = ?", student.profileId()));
+    mvc.perform(formLogin("/login").user(student.username()).password(TEST_PASSWORD))
+            .andExpect(authenticated().withUsername(student.username()))
+            .andExpect(redirectedUrl("/me"));
+}
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item Create a Teacher and Student, then accept the application. The initial
+database check confirms there is a real accepted enrollment to remove.
+\item Delete the Teacher profile through the Admin API. Expect 204.
+\item Check that the Teacher's account and profile are gone. Check that the
+enrollment is gone too. The Student profile must still exist.
+\item Submit the Student's original credentials through form login. Check the
+authenticated username and the redirect to \code{/me}.
+\end{enumerate}
+
+\textbf{Why test login after deletion?}
+The profile query proves the Student row survived. The login proves the linked
+account, password hash, and Student role still work through Spring Security.
+The test therefore covers both storage and a real user action.

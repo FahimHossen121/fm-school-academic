@@ -1,0 +1,588 @@
+\clearpage
+\section{Application code walkthrough}\label{sec:code}
+The excerpts keep the repository's line numbers. Click the source label to open
+the exact revision. Start with the POST handler below, then follow the service,
+database, and security code as needed.
+
+\subsection{Read an HTTP request and create a Student}
+A request to \code{POST /api/students} carries login details and a nested Student
+profile. The controller turns that request into a call to the application service.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/controller/StudentController.java#L31-L35}{\code{StudentController.java}, lines 31--35}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=31]
+@PostMapping
+public ResponseEntity<PeopleApiService.StudentView> create(@Valid @RequestBody CreatePersonRequest request) {
+    var created = people.createStudent(request);
+    return ResponseEntity.created(URI.create("/api/students/" + created.id())).body(created);
+}
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item \code{@PostMapping} combines with the class path \code{/api/students}.
+The request method and path together select this handler.
+\item \code{@RequestBody} binds JSON into \code{CreatePersonRequest}.
+\code{@Valid} runs field checks before the method executes. The DTO's nested
+\code{@Valid} also checks the profile.
+\item The controller delegates to \code{people.createStudent(request)}.
+The service creates the account and profile, then builds a response view.
+\item \code{ResponseEntity.created} returns 201. Its Location header points to
+the new Student profile by ID. The response body is the view object.
+\end{enumerate}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/dto/CreatePersonRequest.java#L6-L11}{\code{CreatePersonRequest.java}, lines 6--11}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=6]
+public record CreatePersonRequest(
+        @NotBlank @Size(min = 3, max = 50)
+        @Pattern(regexp = "[a-zA-Z0-9._-]+") String username,
+        @NotBlank @Size(min = 8, max = 64) String password,
+        @NotNull @Valid ProfileForm profile) {
+}
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/PeopleApiService.java#L48-L52}{\code{PeopleApiService.java}, lines 48--52}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=48]
+public StudentView createStudent(CreatePersonRequest request) {
+    Long accountId = createIdentity(request, Role.STUDENT);
+    profiles.updateManagedProfile(accountId, request.profile());
+    return studentView(students.findByAccountId(accountId).orElseThrow());
+}
+\end{lstlisting}
+
+
+\textbf{Which ID is which?}
+The account ID identifies the login record. The Student profile ID identifies the
+row addressed by \code{/api/students/{id}}. The service looks up the profile using
+the account ID it just created, then returns the profile view.
+
+\textbf{Follow the GET path.}
+The class's list handler calls \code{PeopleApiService.students()}. The service reads
+entities with \code{findAll()} and maps each entity to \code{StudentView}. A view
+makes the JSON fields explicit, which keeps the password hash out of the response.
+
+\clearpage
+\subsection{Map the Student profile and save an update}
+An entity represents a database record. The repository provides operations on that
+entity. The service decides which record to load and which fields to update.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/entity/Student.java#L7-L27}{\code{Student.java}, lines 7--27}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=7]
+@Entity
+@Table(name = "students")
+public class Student {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Getter
+    @Setter
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", unique = true)
+    private Account account;
+
+    @Setter
+    @Getter
+    private String name;
+    @Setter
+    @Getter
+    private String roll;
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/repository/StudentRepository.java#L6-L13}{\code{StudentRepository.java}, lines 6--13}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=6]
+public interface StudentRepository extends JpaRepository<Student, Long> {
+    java.util.Optional<Student> findByAccountId(Long accountId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select s from Student s where s.id = :id")
+    java.util.Optional<Student> findLockedById(
+            @org.springframework.data.repository.query.Param("id") Long id);
+}
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/StudentService.java#L43-L49}{\code{StudentService.java}, lines 43--49}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=43]
+@Transactional
+public void updateStudent(Long id, StudentForm form) {
+    Student student = getStudentById(id);
+    student.setName(form.getName());
+    student.setRoll(form.getRoll());
+    studentRepository.save(student);
+}
+\end{lstlisting}
+
+
+\begin{itemize}
+\item \code{@Id} marks the profile's primary key. \code{IDENTITY} lets PostgreSQL
+assign the ID. The unique \code{account_id} links at most one Student profile to
+the same account. Lazy loading defers fetching that account until needed.
+\item \code{JpaRepository<Student, Long>} declares the entity and ID type.
+Spring Data provides \code{findById} and \code{save}. It derives
+\code{findByAccountId} from the relationship and property names.
+\item \code{findLockedById} uses JPQL, which names the Java entity and its
+fields. Its pessimistic write lock holds the row until the transaction ends.
+That matters for two actions that could try to enroll the same Student.
+\item In \code{updateStudent}, a lookup identifies the record, setters change
+the in-memory entity, and the save is part of a transaction. The transaction
+commits those changes to the database.
+\end{itemize}
+
+\clearpage
+\subsection{Sign in and choose a landing page}
+Authentication answers who the user is. It loads an account by username and
+checks the supplied password against the stored hash. The success handler then
+chooses the landing page.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/config/SecurityConfig.java#L22-L49}{\code{SecurityConfig.java}, lines 22--49}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=22]
+@Bean
+public PasswordEncoder passwordEncoder() {
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+}
+
+@Bean
+public UserDetailsService userDetailsService(AccountRepository accounts) {
+    return username -> {
+        var account = accounts.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Account not found"));
+        return User.withUsername(account.getUsername())
+                .password(account.getPasswordHash())
+                .roles(account.getRole().name())
+                .build();
+    };
+}
+
+@Bean
+public AuthenticationSuccessHandler roleLoginSuccessHandler() {
+    return (request, response, authentication) -> {
+        boolean admin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        var handler = new SavedRequestAwareAuthenticationSuccessHandler();
+        handler.setAlwaysUseDefaultTargetUrl(true);
+        handler.setDefaultTargetUrl(admin ? "/" : "/me");
+        handler.onAuthenticationSuccess(request, response, authentication);
+    };
+}
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item The encoder supports stored password hashes with an algorithm identifier.
+Spring Security uses it to compare passwords during login.
+\item \code{UserDetailsService} loads the username, password hash, and role.
+A missing account raises \code{UsernameNotFoundException}.
+\item \code{roles(...)} gives Spring Security an authority such as
+\code{ROLE_TEACHER}. Rules written as \code{hasRole("TEACHER")} check that authority.
+\item The success handler checks for \code{ROLE_ADMIN}. It redirects Admin to
+\code{/} and Teacher or Student to \code{/me}. The destination comes from the role
+Spring loaded from the account.
+\end{enumerate}
+
+\textbf{Where the tests touch it.}
+Most MockMvc requests set a test identity directly, so they exercise authorization.
+The Teacher-deletion integration test goes further by submitting the Student's
+real credentials through the form-login filter after deletion.
+
+\clearpage
+\subsection{Choose the security rules for a request}
+Spring Security uses the first matching filter chain. The API chain has order 1.
+The general web chain has order 2.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/config/SecurityConfig.java#L51-L86}{\code{SecurityConfig.java}, lines 51--86}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=51]
+@Bean
+@Order(2)
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    return http
+            .authorizeHttpRequests(auth -> auth
+                    .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
+                    .requestMatchers("/login", "/signup", "/signup/student", "/signup/teacher",
+                            "/css/**", "/favicon.ico").permitAll()
+                    .requestMatchers("/students", "/students/**",
+                            "/api/students", "/api/students/**",
+                            "/admin", "/admin/**").hasRole("ADMIN")
+                    .anyRequest().authenticated())
+            .formLogin(form -> form.loginPage("/login")
+                    .successHandler(roleLoginSuccessHandler()).permitAll())
+            .httpBasic(Customizer.withDefaults())
+            .logout(logout -> logout.logoutSuccessUrl("/login?logout"))
+            .build();
+}
+
+@Bean
+@Order(1)
+public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+    return http.securityMatcher("/api/**")
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/api/students", "/api/students/**",
+                            "/api/teachers", "/api/teachers/**").hasRole("ADMIN")
+                    .anyRequest().authenticated())
+            .httpBasic(basic -> basic.authenticationEntryPoint((request, response, exception) ->
+                    apiError(response, 401, "Authentication required")))
+            .exceptionHandling(errors -> errors
+                    .authenticationEntryPoint((request, response, exception) ->
+                            apiError(response, 401, "Authentication required"))
+                    .accessDeniedHandler((request, response, exception) ->
+                            apiError(response, 403, "Access denied or missing CSRF token")))
+            .build();
+}
+\end{lstlisting}
+
+
+\begin{itemize}
+\item \code{securityMatcher("/api/**")} selects the API chain. The route rules
+inside it restrict the people collections to Admin and require authentication for
+the other API routes. Basic authentication is available for API clients.
+\item The web chain opens login, signup, and static CSS. It protects Admin routes
+and configures the form login and logout pages.
+\item \code{401} means authentication is required. \code{403} can mean a role or
+ownership check failed, or a write lacked a valid CSRF token.
+\end{itemize}
+
+A route can permit a Teacher to call an enrollment endpoint. The service must still
+check whether the specific enrollment belongs to that Teacher. The next two
+sections show that distinction in code.
+
+\clearpage
+\subsection{Apply, invite, and respond to an enrollment}
+A Student application and a Teacher invitation use the same enrollment table.
+\code{requestedBy} records which side sent the request, so the service can identify
+the recipient. A rejected pair can reopen through the shared \code{request} method.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/EnrollmentService.java#L105-L121}{\code{EnrollmentService.java}, lines 105--121}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=105]
+@Transactional
+public void respond(Long id, boolean accept) {
+    Account actor = currentAccount();
+    Enrollment enrollment = enrollment(id);
+    // Check who may act before exposing the current request state.
+    if (actor.getRole() != Role.ADMIN && !isRecipient(enrollment, actor)) {
+        throw forbidden();
+    }
+    if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
+        throw conflict("Only pending requests can be accepted or rejected");
+    }
+    if (accept) {
+        requireAvailable(enrollment.getStudent().getId(), enrollment.getTeacher().getId());
+    }
+    enrollment.setStatus(accept ? EnrollmentStatus.ACCEPTED : EnrollmentStatus.REJECTED);
+    enrollments.save(enrollment);
+}
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/EnrollmentService.java#L136-L153}{\code{EnrollmentService.java}, lines 136--153}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=136]
+private void request(Teacher teacher, Student student, Role sender) {
+    student = lockStudent(student.getId());
+    requireAvailable(student.getId(), teacher.getId());
+    Enrollment enrollment = enrollments.findLockedPair(teacher.getId(), student.getId())
+            .orElseGet(Enrollment::new);
+    if (enrollment.getStatus() == EnrollmentStatus.ACCEPTED) {
+        throw conflict("This Student is already associated with this Teacher");
+    }
+    if (enrollment.getStatus() == EnrollmentStatus.PENDING) {
+        throw conflict("A request is already pending; its recipient must respond");
+    }
+    // A rejected pair can apply/invite again, without duplicating the association.
+    enrollment.setTeacher(teacher);
+    enrollment.setStudent(student);
+    enrollment.setRequestedBy(sender);
+    enrollment.setStatus(EnrollmentStatus.PENDING);
+    enrollments.save(enrollment);
+}
+\end{lstlisting}
+
+
+\begin{itemize}
+\item \code{respond} checks the actor before checking the request status. Only Admin
+or the recipient can respond. A second acceptance encounters the status guard
+and returns a conflict before the save.
+\item Accepting also calls \code{requireAvailable}. It checks whether the Student
+already has an accepted enrollment with another Teacher.
+\item \code{request} locks the Student and finds the existing Teacher--Student pair.
+For a rejected request it reuses the row, sets the new sender, and returns the
+status to pending. A pending pair already has a recipient who needs to respond.
+\end{itemize}
+
+\textbf{Concurrency.}
+\code{enrollment(id)} locks the Student before the enrollment. That serializes
+competing acceptances for the same Student. The database also enforces the
+one-accepted-course rule through a partial unique index on \code{student_id} for
+accepted rows. The course transfer test exercises the rule sequentially.
+
+\clearpage
+\subsection{Edit marks through the accepted enrollment}
+Teacher edit access depends on the role, the enrollment's status, and the
+account that owns the Teacher profile. The service uses the enrollment ID to
+load that relationship before writing either record.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/EnrollmentService.java#L204-L225}{\code{EnrollmentService.java}, lines 204--225}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=204]
+@Transactional
+@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+public void updateEnrolledStudent(Long id, @Valid EnrolledStudentForm form) {
+    Enrollment enrollment = enrollment(id);
+    requireEditor(enrollment, currentAccount());
+    Student student = enrollment.getStudent();
+    student.setName(form.getName());
+    student.setRoll(form.getRoll());
+    enrollment.setMarks(form.getMarks());
+    students.save(student);
+    enrollments.save(enrollment);
+    // Account username/password/role are deliberately untouched.
+}
+
+private void requireEditor(Enrollment enrollment, Account actor) {
+    if (enrollment.getStatus() != EnrollmentStatus.ACCEPTED
+            || (actor.getRole() != Role.ADMIN
+                && !(actor.getRole() == Role.TEACHER
+                    && Objects.equals(enrollment.getTeacher().getAccount().getId(), actor.getId())))) {
+        throw forbidden();
+    }
+}
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/resources/db/changelog/db.changelog-master.yaml#L170-L173}{\code{db.changelog-master.yaml}, lines 170--173}}
+\begin{lstlisting}[style=source,language=YAML,firstnumber=170]
+    sql: CREATE UNIQUE INDEX enrollments_one_accepted_course ON enrollments (student_id) WHERE status = 'ACCEPTED'
+- sql:
+    dbms: postgresql
+    sql: ALTER TABLE enrollments ADD CONSTRAINT enrollments_marks_range CHECK (marks IS NULL OR (marks >= 0 AND marks <= 100))
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item \code{@PreAuthorize} permits Teacher and Admin roles through the method
+boundary. \code{requireEditor} requires an accepted enrollment. For Teachers
+it compares the enrollment's Teacher account ID with the actor's account ID.
+\item The name and roll belong to the Student profile. The mark belongs to the
+enrollment, so both are updated within the transaction. Login details stay in
+the linked account record.
+\item \code{form.getMarks()} can return null. The service stores that null as
+ungraded. Zero remains a valid numeric mark. The schema permits null or a
+value between 0 and 100.
+\end{enumerate}
+
+\textbf{What the board shows.}
+\code{getBoard()} gets enrollment rows separately from the lists of people the
+user can invite or apply to. That distinction lets a Student see pending history
+even when an accepted enrollment hides the new-application picker. A Teacher's
+picker filters out Students who already have an accepted course or have no account.
+
+\clearpage
+\subsection{Roll back creation and clean up deletions}
+The Admin API works across two kinds of records. Account creation writes the
+identity first and profile creation fills in the role-specific record afterward.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/PeopleApiService.java#L13-L16}{\code{PeopleApiService.java}, lines 13--16}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=13]
+@Service
+@PreAuthorize("hasRole('ADMIN')")
+@Transactional
+public class PeopleApiService {
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/PeopleApiService.java#L78-L82}{\code{PeopleApiService.java}, lines 78--82}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=78]
+public TeacherView createTeacher(CreatePersonRequest request) {
+    Long accountId = createIdentity(request, Role.TEACHER);
+    profiles.updateManagedProfile(accountId, request.profile());
+    return teacherView(teachers.findByAccountId(accountId).orElseThrow());
+}
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/ProfileService.java#L142-L150}{\code{ProfileService.java}, lines 142--150}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=142]
+} else if (account.getRole() == Role.TEACHER) {
+    if (form.getCourse() == null || form.getCourse().isBlank()) {
+        throw new IllegalArgumentException("Course is required");
+    }
+    Teacher teacher = teachers.findByAccountId(account.getId()).orElseGet(Teacher::new);
+    teacher.setAccount(account);
+    teacher.setName(form.getName());
+    teacher.setCourse(form.getCourse());
+    teachers.save(teacher);
+\end{lstlisting}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/ProfileService.java#L156-L163}{\code{ProfileService.java}, lines 156--163}}
+\begin{lstlisting}[style=source,language=FMJava,firstnumber=156]
+private void delete(Account account) {
+    students.findByAccountId(account.getId()).ifPresent(students::delete);
+    teachers.findByAccountId(account.getId()).ifPresent(teachers::delete);
+    // Remove dependent records before the account, preserving unrelated people.
+    students.flush();
+    teachers.flush();
+    accounts.delete(account);
+}
+\end{lstlisting}
+
+
+\begin{itemize}
+\item The class-level \code{@Transactional} on \code{PeopleApiService} gives
+\code{createTeacher} a transaction that covers both steps. The nested account
+and profile service calls join that transaction.
+\item A missing course reaches the Teacher branch of \code{save} and throws an
+\code{IllegalArgumentException}. The API handler returns 400. The transaction
+rolls back, so the account written by the first step disappears.
+\item Deleting an account removes its profiles first and flushes those deletions.
+The enrollment foreign keys have \code{ON DELETE CASCADE}, so the linked
+enrollment rows disappear when the Teacher profile is deleted.
+\item The Student profile belongs to another account. The cascade follows the
+deleted Teacher's enrollment links and leaves the Student's login usable.
+\end{itemize}
+
+\textbf{What to show in the lab.}
+Open integration test I2 for the rollback query and I3 for the row checks plus the
+Student's login after the Teacher is gone.
+
+\clearpage
+\subsection{Connect the web form and the database}
+Thymeleaf renders the profile form with values supplied by Spring MVC. The
+browser submits the form to the route shown in the generated HTML.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/resources/templates/profile.html#L27-L51}{\code{profile.html}, lines 27--51}}
+\begin{lstlisting}[style=source,language=HTML,firstnumber=27]
+<h2>Personal information</h2>
+<form
+  th:action="@{${savePath}}"
+  th:object="${profileForm}"
+  method="post"
+  class="field-form"
+>
+  <ul role="alert" th:if="${#fields.hasAnyErrors()}">
+    <li
+      th:each="error : ${#fields.allErrors()}"
+      th:text="${error}"
+    ></li>
+  </ul>
+  <p>
+    <label for="name">Name</label>
+    <input id="name" type="text" th:field="*{name}" />
+  </p>
+  <p th:if="${isStudent}">
+    <label for="roll">Roll</label>
+    <input
+      id="roll"
+      inputmode="numeric"
+      type="text"
+      th:field="*{roll}"
+    />
+\end{lstlisting}
+
+
+\begin{itemize}
+\item \code{th:action} generates the route from the controller's save path.
+\code{th:object} selects the profile form object. \code{th:field} connects an
+input to one of its fields.
+\item The error list displays validation messages after invalid input.
+\code{isStudent} selects the Student roll input. The server also validates the
+profile before saving it.
+\item The shared layout loads the compiled Tailwind stylesheet from
+\code{/css/app.css}. Changing Tailwind source requires a CSS build.
+\end{itemize}
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/compose.yaml#L1-L14}{\code{compose.yaml}, lines 1--14}}
+\begin{lstlisting}[style=source,language=YAML,firstnumber=1]
+services:
+  postgres:
+    image: 'postgres:18.6'
+    environment:
+      - 'POSTGRES_DB=fm_school_db'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=myuser'
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - 'postgres_data:/var/lib/postgresql'
+
+volumes:
+  postgres_data:
+\end{lstlisting}
+
+
+The PostgreSQL service publishes its port to localhost. Spring Boot runs on the
+host and uses its PostgreSQL driver to reach that port. The named volume keeps
+database files across ordinary container recreation.
+
+\clearpage
+\subsection{Read the GitHub Actions workflow}
+The workflow runs the same Maven verification goal used in local development.
+GitHub starts PostgreSQL in a service container on the Ubuntu runner.
+
+\par\smallskip
+{\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/.github/workflows/tests.yml#L1-L38}{\code{tests.yml}, lines 1--38}}
+\begin{lstlisting}[style=source,language=YAML,firstnumber=1]
+name: FM School tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_DB: fm_school_test
+          POSTGRES_USER: fm_school_test
+          POSTGRES_PASSWORD: fm_school_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U fm_school_test -d fm_school_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Run unit and PostgreSQL integration tests
+        run: mvn --batch-mode --no-transfer-progress verify
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item \code{push} and \code{pull_request} schedule the checks. The workflow also
+supports a manual run.
+\item The PostgreSQL service waits for \code{pg_isready}. Port 55432 on the runner
+maps to port 5432 inside the test database container.
+\item Checkout retrieves the repository. Setup Java installs Temurin 25 and
+caches Maven dependencies.
+\item \code{mvn verify} runs the isolated tests, packages the application,
+runs the PostgreSQL tests, and fails the job if either phase reports a failure.
+\end{enumerate}
+
+The integration profile uses the same database name and port as this service.
+The workflow's successful \code{verify} job is the result to show during the demo.

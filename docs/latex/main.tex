@@ -2,11 +2,14 @@
 \usepackage[margin=19mm,headheight=15pt]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage{xcolor,booktabs,tabularx,array,enumitem,fancyhdr,fancyvrb,tikz,hyperref}
+\usepackage{xcolor,booktabs,tabularx,array,enumitem,fancyhdr,listings,tikz,hyperref}
 \usetikzlibrary{arrows.meta,positioning}
 \definecolor{ink}{HTML}{183D4B}
 \definecolor{accent}{HTML}{375E6A}
 \definecolor{pale}{HTML}{F1F4F5}
+\definecolor{codekeyword}{HTML}{234B9B}
+\definecolor{codestring}{HTML}{8E3534}
+\definecolor{codecomment}{HTML}{386A51}
 \hypersetup{colorlinks=true,linkcolor=ink,urlcolor=ink,pdftitle={FM School Project Guide}}
 \pagestyle{fancy}
 \fancyhf{}
@@ -26,7 +29,19 @@
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
 \newcommand{\repo}{https://github.com/FahimHossen121/fm-school-academic}
-\DefineVerbatimEnvironment{lstlisting}{Verbatim}{fontsize=\small,frame=single,framesep=2mm,rulecolor=\color{accent}}
+\lstdefinelanguage{PowerShell}{sensitive=false,morekeywords={git,docker,cd,Set-ExecutionPolicy,Get-Content},morecomment=[l]{\#},morestring=[b]"}
+\lstdefinelanguage{JSON}{morekeywords={true,false,null},morestring=[b]"}
+\lstdefinelanguage{YAML}{morekeywords={name,on,push,pull_request,workflow_dispatch,permissions,jobs,services,image,env,ports,options,steps,uses,with,run,distribution,cache},morecomment=[l]{\#},morestring=[b]",morestring=[b]'}
+\lstset{basicstyle=\small\ttfamily,columns=fullflexible,keepspaces=true,
+  showstringspaces=false,breaklines=true,breakatwhitespace=false,
+  frame=single,rulecolor=\color{pale},backgroundcolor=\color{pale},
+  keywordstyle=\color{codekeyword}\bfseries,stringstyle=\color{codestring},
+  commentstyle=\color{codecomment}\itshape,aboveskip=6pt,belowskip=6pt,
+  xleftmargin=3pt,xrightmargin=3pt,framesep=4pt}
+\lstdefinestyle{source}{basicstyle=\footnotesize\ttfamily,numbers=left,
+  numberstyle=\scriptsize\color{accent},numbersep=6pt,xleftmargin=22pt}
+\lstdefinestyle{commands}{language=PowerShell}
+\lstdefinelanguage{FMJava}[]{Java}{alsoletter=@,morekeywords={var,record,@Test,@BeforeEach,@AfterEach,@Autowired,@Transactional,@Valid,@RestController,@RequestMapping,@GetMapping,@PostMapping,@RequestBody,@PreAuthorize,@Bean,@Order,@Entity,@Table,@Id,@GeneratedValue,@OneToOne,@JoinColumn,@Getter,@Setter,@SpringBootTest,@ActiveProfiles,@NotBlank,@NotNull,@Size,@Pattern}}
 \widowpenalty=10000
 \clubpenalty=10000
 \begin{document}
@@ -39,7 +54,8 @@ Run the application, follow the code, and explain the tests in the viva.
 \hyperref[sec:setup]{1. Set up and run} & \hyperref[sec:architecture]{2. Understand the code} \\
 \hyperref[sec:demo]{3. Demo the main workflows} & \hyperref[sec:api]{4. Use the JSON API} \\
 \hyperref[sec:tests]{5. Know the nine new tests} & \hyperref[sec:ci]{6. Run CI and make changes} \\
-\hyperref[sec:viva]{7. Prepare for the viva} & \\
+\hyperref[sec:viva]{7. Prepare for the viva} & \hyperref[sec:code]{8. Application code walkthrough} \\
+\hyperref[sec:unitcode]{9. Six unit tests in code} & \hyperref[sec:itcode]{10. Three integration tests in code} \\
 \end{tabularx}
 
 \section{Set up and run}\label{sec:setup}
@@ -52,7 +68,7 @@ Install Git, JDK 25, Docker Desktop, and IntelliJ. Start Docker Desktop and wait
 for its engine. Select JDK 25 for the IntelliJ project and Maven importer.
 For terminal commands, set \code{JAVA_HOME} to the JDK directory and check
 \code{java -version} and \verb|.\mvnw.cmd -version|.
-\begin{lstlisting}
+\begin{lstlisting}[style=commands]
 git clone https://github.com/FahimHossen121/fm-school-academic.git
 cd fm-school-academic
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
@@ -76,7 +92,7 @@ Student & \code{student2} / \code{student2} & My Profile \\
 Start the database with \code{docker compose up -d postgres}. In IntelliJ, run
 \code{FmSchoolApplication} and wait for Liquibase to finish. Load the demo rows
 from a second terminal and refresh the login page.
-\begin{lstlisting}
+\begin{lstlisting}[style=commands]
 Get-Content .\demo\seed-demo-data.sql |
   docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U myuser -d fm_school_db
 \end{lstlisting}
@@ -237,7 +253,7 @@ Endpoint & Purpose \\
 As the associated Teacher, send this JSON to
 \code{PUT /api/enrollments/{id}/student}. The enrollment ID identifies the
 relationship. You can find it on the enrollment board.
-\begin{lstlisting}
+\begin{lstlisting}[language=JSON]
 {"name":"Student Two","roll":"9000002","marks":85.50}
 \end{lstlisting}
 A successful write returns 200. Repeat the call as an unrelated Teacher and
@@ -299,7 +315,7 @@ assertion alone could pass even if an unused account were left in the database.
 Run unit and isolated web tests with \verb|.\mvnw.cmd test|. To run the integration
 tests too, start a disposable PostgreSQL container on port 55432. The demo
 database uses port 5432, so both can run independently.
-\begin{lstlisting}
+\begin{lstlisting}[style=commands]
 docker run -d --rm --name fm-school-lab-test `
   -p 127.0.0.1:55432:5432 `
   -e POSTGRES_DB=fm_school_test -e POSTGRES_USER=fm_school_test `
@@ -308,7 +324,7 @@ docker exec fm-school-lab-test pg_isready -U fm_school_test -d fm_school_test
 \end{lstlisting}
 Once \code{pg_isready} reports that the database accepts connections, run the
 suite and stop the disposable container when finished.
-\begin{lstlisting}
+\begin{lstlisting}[style=commands]
 .\mvnw.cmd clean verify
 docker stop fm-school-lab-test
 \end{lstlisting}
@@ -390,4 +406,6 @@ absence of the account in PostgreSQL. Finish by showing the Actions run.
 \href{\repo/blob/main/docs/Styling.md}{Tailwind workflow}
 \item \href{\repo/blob/main/docs/Lab\%20Report.md}{REST API, Spring Boot, and Docker lab report}
 \end{itemize}
+\input{code-walkthrough}
+\input{test-walkthrough}
 \end{document}
