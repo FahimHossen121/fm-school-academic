@@ -7,51 +7,51 @@ those methods a Student, a Teacher, and a pending application. The tests call
 \subsection{Set up the service and its inputs}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L33-L37}{\code{EnrollmentServiceUnitTests.java}, lines 33--37}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=33]
-private final EnrollmentRepository enrollments = mock(EnrollmentRepository.class);
-private final AccountRepository accounts = mock(AccountRepository.class);
-private final TeacherRepository teachers = mock(TeacherRepository.class);
-private final StudentRepository students = mock(StudentRepository.class);
-private final EnrollmentService service = new EnrollmentService(enrollments, accounts, teachers, students);
+\begin{lstlisting}[style=vsJava,firstnumber=33]
+(*T01:private:*) (*T01:final:*) (*T00:EnrollmentRepository:*) (*T03:enrollments:*) = (*T02:mock:*)((*T03:EnrollmentRepository:*).(*T03:class:*));
+(*T01:private:*) (*T01:final:*) (*T00:AccountRepository:*) (*T03:accounts:*) = (*T02:mock:*)((*T03:AccountRepository:*).(*T03:class:*));
+(*T01:private:*) (*T01:final:*) (*T00:TeacherRepository:*) (*T03:teachers:*) = (*T02:mock:*)((*T03:TeacherRepository:*).(*T03:class:*));
+(*T01:private:*) (*T01:final:*) (*T00:StudentRepository:*) (*T03:students:*) = (*T02:mock:*)((*T03:StudentRepository:*).(*T03:class:*));
+(*T01:private:*) (*T01:final:*) (*T00:EnrollmentService:*) (*T03:service:*) = (*T04:new:*) (*T02:EnrollmentService:*)(enrollments, accounts, teachers, students);
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L45-L63}{\code{EnrollmentServiceUnitTests.java}, lines 45--63}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=45]
-@BeforeEach
-void setUp() {
-    teacherAccount = account(2L, "teacher1", Role.TEACHER);
-    studentAccount = account(3L, "student1", Role.STUDENT);
-    teacher = new Teacher();
-    teacher.setId(10L);
-    teacher.setAccount(teacherAccount);
-    student = student(20L, "Student One", studentAccount);
-    application = enrollment(7L, teacher, EnrollmentStatus.PENDING);
+\begin{lstlisting}[style=vsJava,firstnumber=45]
+@(*T00:BeforeEach:*)
+(*T00:void:*) (*T02:setUp:*)() {
+    teacherAccount = (*T02:account:*)((*T06:2L:*), (*T05:"teacher1":*), (*T03:Role:*).(*T03:TEACHER:*));
+    studentAccount = (*T02:account:*)((*T06:3L:*), (*T05:"student1":*), (*T03:Role:*).(*T03:STUDENT:*));
+    teacher = (*T04:new:*) (*T02:Teacher:*)();
+    (*T03:teacher:*).(*T02:setId:*)((*T06:10L:*));
+    (*T03:teacher:*).(*T02:setAccount:*)(teacherAccount);
+    student = (*T02:student:*)((*T06:20L:*), (*T05:"Student One":*), studentAccount);
+    application = (*T02:enrollment:*)((*T06:7L:*), teacher, (*T03:EnrollmentStatus:*).(*T03:PENDING:*));
 
-    when(enrollments.findStudentId(7L)).thenReturn(Optional.of(20L));
-    when(students.findLockedById(20L)).thenReturn(Optional.of(student));
-    when(enrollments.findLockedById(7L)).thenReturn(Optional.of(application));
+    (*T02:when:*)((*T03:enrollments:*).(*T02:findStudentId:*)((*T06:7L:*))).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:of:*)((*T06:20L:*)));
+    (*T02:when:*)((*T03:students:*).(*T02:findLockedById:*)((*T06:20L:*))).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:of:*)(student));
+    (*T02:when:*)((*T03:enrollments:*).(*T02:findLockedById:*)((*T06:7L:*))).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:of:*)(application));
 }
 
-@AfterEach
-void clearAuthentication() {
-    SecurityContextHolder.clearContext();
+@(*T00:AfterEach:*)
+(*T00:void:*) (*T02:clearAuthentication:*)() {
+    (*T03:SecurityContextHolder:*).(*T02:clearContext:*)();
 }
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L159-L169}{\code{EnrollmentServiceUnitTests.java}, lines 159--169}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=159]
-private void signInAs(Account account) {
-    when(accounts.findByUsername(account.getUsername())).thenReturn(Optional.of(account));
-    SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(
-            account.getUsername(), null, "ROLE_" + account.getRole().name()));
+\begin{lstlisting}[style=vsJava,firstnumber=159]
+(*T01:private:*) (*T00:void:*) (*T02:signInAs:*)((*T00:Account:*) (*T03:account:*)) {
+    (*T02:when:*)((*T03:accounts:*).(*T02:findByUsername:*)((*T03:account:*).(*T02:getUsername:*)())).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:of:*)(account));
+    (*T03:SecurityContextHolder:*).(*T02:getContext:*)().(*T02:setAuthentication:*)((*T04:new:*) (*T02:TestingAuthenticationToken:*)(
+            (*T03:account:*).(*T02:getUsername:*)(), (*T01:null:*), (*T05:"ROLE_":*) + (*T03:account:*).(*T02:getRole:*)().(*T02:name:*)()));
 }
 
-private static ResponseStatusException assertStatus(HttpStatus status, Runnable action) {
-    var error = assertThrows(ResponseStatusException.class, action::run);
-    assertEquals(status, error.getStatusCode());
-    return error;
+(*T01:private:*) (*T01:static:*) (*T00:ResponseStatusException:*) (*T02:assertStatus:*)((*T00:HttpStatus:*) (*T03:status:*), (*T00:Runnable:*) (*T03:action:*)) {
+    (*T01:var:*) (*T03:error:*) = (*T02:assertThrows:*)((*T03:ResponseStatusException:*).(*T03:class:*), action(*T04::::*)run);
+    (*T02:assertEquals:*)(status, (*T03:error:*).(*T02:getStatusCode:*)());
+    (*T04:return:*) error;
 }
 \end{lstlisting}
 
@@ -73,19 +73,19 @@ The cleanup method clears the security context after each test.
 \subsection{U1. An acceptance retry must leave the original result intact}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L65-L77}{\code{EnrollmentServiceUnitTests.java}, lines 65--77}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=65]
-@Test
-void retryingAcceptanceReturnsConflictWithoutSavingAgain() {
-    signInAs(teacherAccount);
+\begin{lstlisting}[style=vsJava,firstnumber=65]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:retryingAcceptanceReturnsConflictWithoutSavingAgain:*)() {
+    (*T02:signInAs:*)(teacherAccount);
 
-    service.respond(7L, true);
-    assertEquals(EnrollmentStatus.ACCEPTED, application.getStatus());
-    verify(enrollments).save(application);
-    clearInvocations(enrollments);
+    (*T03:service:*).(*T02:respond:*)((*T06:7L:*), (*T01:true:*));
+    (*T02:assertEquals:*)((*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*), (*T03:application:*).(*T02:getStatus:*)());
+    (*T02:verify:*)(enrollments).(*T02:save:*)(application);
+    (*T02:clearInvocations:*)(enrollments);
 
-    assertStatus(HttpStatus.CONFLICT, () -> service.respond(7L, true));
-    assertEquals(EnrollmentStatus.ACCEPTED, application.getStatus());
-    verify(enrollments, never()).save(any());
+    (*T02:assertStatus:*)((*T03:HttpStatus:*).(*T03:CONFLICT:*), () (*T01:->:*) (*T03:service:*).(*T02:respond:*)((*T06:7L:*), (*T01:true:*)));
+    (*T02:assertEquals:*)((*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*), (*T03:application:*).(*T02:getStatus:*)());
+    (*T02:verify:*)(enrollments, (*T02:never:*)()).(*T02:save:*)((*T02:any:*)());
 }
 \end{lstlisting}
 
@@ -117,28 +117,28 @@ guard before reaching \code{enrollments.save}.
 \subsection{U2. A rejected application can reopen as an invitation}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L79-L100}{\code{EnrollmentServiceUnitTests.java}, lines 79--100}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=79]
-@Test
-void rejectedApplicationReopensAsInvitationWithStudentAsRecipient() {
-    signInAs(teacherAccount);
-    service.respond(7L, false);
-    assertEquals(EnrollmentStatus.REJECTED, application.getStatus());
+\begin{lstlisting}[style=vsJava,firstnumber=79]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:rejectedApplicationReopensAsInvitationWithStudentAsRecipient:*)() {
+    (*T02:signInAs:*)(teacherAccount);
+    (*T03:service:*).(*T02:respond:*)((*T06:7L:*), (*T01:false:*));
+    (*T02:assertEquals:*)((*T03:EnrollmentStatus:*).(*T03:REJECTED:*), (*T03:application:*).(*T02:getStatus:*)());
 
-    when(teachers.findByAccountId(2L)).thenReturn(Optional.of(teacher));
-    when(enrollments.findLockedPair(10L, 20L)).thenReturn(Optional.of(application));
-    clearInvocations(enrollments);
+    (*T02:when:*)((*T03:teachers:*).(*T02:findByAccountId:*)((*T06:2L:*))).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:of:*)(teacher));
+    (*T02:when:*)((*T03:enrollments:*).(*T02:findLockedPair:*)((*T06:10L:*), (*T06:20L:*))).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:of:*)(application));
+    (*T02:clearInvocations:*)(enrollments);
 
-    service.invite(20L);
+    (*T03:service:*).(*T02:invite:*)((*T06:20L:*));
 
-    assertEquals(EnrollmentStatus.PENDING, application.getStatus());
-    assertEquals(Role.TEACHER, application.getRequestedBy());
-    verify(enrollments).save(same(application));
-    assertStatus(HttpStatus.FORBIDDEN, () -> service.respond(7L, true));
-    assertEquals(EnrollmentStatus.PENDING, application.getStatus());
+    (*T02:assertEquals:*)((*T03:EnrollmentStatus:*).(*T03:PENDING:*), (*T03:application:*).(*T02:getStatus:*)());
+    (*T02:assertEquals:*)((*T03:Role:*).(*T03:TEACHER:*), (*T03:application:*).(*T02:getRequestedBy:*)());
+    (*T02:verify:*)(enrollments).(*T02:save:*)((*T02:same:*)(application));
+    (*T02:assertStatus:*)((*T03:HttpStatus:*).(*T03:FORBIDDEN:*), () (*T01:->:*) (*T03:service:*).(*T02:respond:*)((*T06:7L:*), (*T01:true:*)));
+    (*T02:assertEquals:*)((*T03:EnrollmentStatus:*).(*T03:PENDING:*), (*T03:application:*).(*T02:getStatus:*)());
 
-    signInAs(studentAccount);
-    service.respond(7L, true);
-    assertEquals(EnrollmentStatus.ACCEPTED, application.getStatus());
+    (*T02:signInAs:*)(studentAccount);
+    (*T03:service:*).(*T02:respond:*)((*T06:7L:*), (*T01:true:*));
+    (*T02:assertEquals:*)((*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*), (*T03:application:*).(*T02:getStatus:*)());
 }
 \end{lstlisting}
 
@@ -171,19 +171,19 @@ checking for \code{PENDING} would miss that rule.
 \subsection{U3. Show only eligible Students in the Teacher's picker}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L102-L114}{\code{EnrollmentServiceUnitTests.java}, lines 102--114}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=102]
-@Test
-void teacherPickerExcludesOccupiedStudentsAndProfilesWithoutAccounts() {
-    signInAs(teacherAccount);
-    when(teachers.findByAccountId(2L)).thenReturn(Optional.of(teacher));
-    Student occupied = student(21L, "Occupied", account(4L, "occupied", Role.STUDENT));
-    Student legacy = student(22L, "Legacy", null);
-    when(students.findAll()).thenReturn(List.of(student, occupied, legacy));
-    when(enrollments.findStudentIdsByStatus(EnrollmentStatus.ACCEPTED)).thenReturn(List.of(21L));
+\begin{lstlisting}[style=vsJava,firstnumber=102]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:teacherPickerExcludesOccupiedStudentsAndProfilesWithoutAccounts:*)() {
+    (*T02:signInAs:*)(teacherAccount);
+    (*T02:when:*)((*T03:teachers:*).(*T02:findByAccountId:*)((*T06:2L:*))).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:of:*)(teacher));
+    (*T00:Student:*) (*T03:occupied:*) = (*T02:student:*)((*T06:21L:*), (*T05:"Occupied":*), (*T02:account:*)((*T06:4L:*), (*T05:"occupied":*), (*T03:Role:*).(*T03:STUDENT:*)));
+    (*T00:Student:*) (*T03:legacy:*) = (*T02:student:*)((*T06:22L:*), (*T05:"Legacy":*), (*T01:null:*));
+    (*T02:when:*)((*T03:students:*).(*T02:findAll:*)()).(*T02:thenReturn:*)((*T03:List:*).(*T02:of:*)(student, occupied, legacy));
+    (*T02:when:*)((*T03:enrollments:*).(*T02:findStudentIdsByStatus:*)((*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*))).(*T02:thenReturn:*)((*T03:List:*).(*T02:of:*)((*T06:21L:*)));
 
-    var board = service.getBoard();
+    (*T01:var:*) (*T03:board:*) = (*T03:service:*).(*T02:getBoard:*)();
 
-    assertEquals(List.of(new EnrollmentService.StudentOption(20L, "Student One")), board.students());
+    (*T02:assertEquals:*)((*T03:List:*).(*T02:of:*)((*T04:new:*) EnrollmentService.(*T02:StudentOption:*)((*T06:20L:*), (*T05:"Student One":*))), (*T03:board:*).(*T02:students:*)());
 }
 \end{lstlisting}
 
@@ -195,22 +195,22 @@ proves both exclusions and confirms that profile 20 remains selectable.
 \subsection{U4. Keep pending rows visible when a Student has a course}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L116-L131}{\code{EnrollmentServiceUnitTests.java}, lines 116--131}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=116]
-@Test
-void enrolledStudentKeepsPendingRowsButCannotPickANewTeacher() {
-    signInAs(studentAccount);
-    when(students.findByAccountId(3L)).thenReturn(Optional.of(student));
-    Teacher otherTeacher = new Teacher();
-    otherTeacher.setId(11L);
-    Enrollment accepted = enrollment(8L, otherTeacher, EnrollmentStatus.ACCEPTED);
-    when(enrollments.findForAccount(3L)).thenReturn(List.of(application, accepted));
-    when(teachers.findAll()).thenReturn(List.of(teacher, otherTeacher));
+\begin{lstlisting}[style=vsJava,firstnumber=116]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:enrolledStudentKeepsPendingRowsButCannotPickANewTeacher:*)() {
+    (*T02:signInAs:*)(studentAccount);
+    (*T02:when:*)((*T03:students:*).(*T02:findByAccountId:*)((*T06:3L:*))).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:of:*)(student));
+    (*T00:Teacher:*) (*T03:otherTeacher:*) = (*T04:new:*) (*T02:Teacher:*)();
+    (*T03:otherTeacher:*).(*T02:setId:*)((*T06:11L:*));
+    (*T00:Enrollment:*) (*T03:accepted:*) = (*T02:enrollment:*)((*T06:8L:*), otherTeacher, (*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*));
+    (*T02:when:*)((*T03:enrollments:*).(*T02:findForAccount:*)((*T06:3L:*))).(*T02:thenReturn:*)((*T03:List:*).(*T02:of:*)(application, accepted));
+    (*T02:when:*)((*T03:teachers:*).(*T02:findAll:*)()).(*T02:thenReturn:*)((*T03:List:*).(*T02:of:*)(teacher, otherTeacher));
 
-    var board = service.getBoard();
+    (*T01:var:*) (*T03:board:*) = (*T03:service:*).(*T02:getBoard:*)();
 
-    assertTrue(board.teachers().isEmpty());
-    assertEquals(List.of(7L, 8L), board.rows().stream().map(EnrollmentService.Row::id).toList());
-    assertEquals(EnrollmentStatus.PENDING, board.rows().getFirst().status());
+    (*T02:assertTrue:*)((*T03:board:*).(*T02:teachers:*)().(*T02:isEmpty:*)());
+    (*T02:assertEquals:*)((*T03:List:*).(*T02:of:*)((*T06:7L:*), (*T06:8L:*)), (*T03:board:*).(*T02:rows:*)().(*T02:stream:*)().(*T02:map:*)((*T03:EnrollmentService:*).(*T03:Row:*)(*T04::::*)id).(*T02:toList:*)());
+    (*T02:assertEquals:*)((*T03:EnrollmentStatus:*).(*T03:PENDING:*), (*T03:board:*).(*T02:rows:*)().(*T02:getFirst:*)().(*T02:status:*)());
 }
 \end{lstlisting}
 
@@ -227,20 +227,20 @@ requests and enrollments. Filtering the picker should leave that history visible
 \subsection{U5. Clearing a mark returns the enrollment to ungraded}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L133-L146}{\code{EnrollmentServiceUnitTests.java}, lines 133--146}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=133]
-@Test
-void clearingAnExistingMarkRestoresTheUngradedState() {
-    signInAs(teacherAccount);
-    application.setStatus(EnrollmentStatus.ACCEPTED);
-    application.setMarks(new BigDecimal("78.25"));
-    EnrolledStudentForm form = new EnrolledStudentForm();
-    form.setName(student.getName());
-    form.setRoll(student.getRoll());
+\begin{lstlisting}[style=vsJava,firstnumber=133]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:clearingAnExistingMarkRestoresTheUngradedState:*)() {
+    (*T02:signInAs:*)(teacherAccount);
+    (*T03:application:*).(*T02:setStatus:*)((*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*));
+    (*T03:application:*).(*T02:setMarks:*)((*T04:new:*) (*T02:BigDecimal:*)((*T05:"78.25":*)));
+    (*T00:EnrolledStudentForm:*) (*T03:form:*) = (*T04:new:*) (*T02:EnrolledStudentForm:*)();
+    (*T03:form:*).(*T02:setName:*)((*T03:student:*).(*T02:getName:*)());
+    (*T03:form:*).(*T02:setRoll:*)((*T03:student:*).(*T02:getRoll:*)());
 
-    service.updateEnrolledStudent(7L, form);
+    (*T03:service:*).(*T02:updateEnrolledStudent:*)((*T06:7L:*), form);
 
-    assertNull(application.getMarks());
-    verify(enrollments).save(application);
+    (*T02:assertNull:*)((*T03:application:*).(*T02:getMarks:*)());
+    (*T02:verify:*)(enrollments).(*T02:save:*)(application);
 }
 \end{lstlisting}
 
@@ -252,16 +252,16 @@ enrollment. This catches a change that would store zero or retain 78.25.
 \subsection{U6. A Teacher without a profile cannot invite}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L148-L157}{\code{EnrollmentServiceUnitTests.java}, lines 148--157}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=148]
-@Test
-void teacherWithAnAccountButNoProfileCannotSendAnInvitation() {
-    signInAs(teacherAccount);
-    when(teachers.findByAccountId(2L)).thenReturn(Optional.empty());
+\begin{lstlisting}[style=vsJava,firstnumber=148]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:teacherWithAnAccountButNoProfileCannotSendAnInvitation:*)() {
+    (*T02:signInAs:*)(teacherAccount);
+    (*T02:when:*)((*T03:teachers:*).(*T02:findByAccountId:*)((*T06:2L:*))).(*T02:thenReturn:*)((*T03:Optional:*).(*T02:empty:*)());
 
-    var conflict = assertStatus(HttpStatus.CONFLICT, () -> service.invite(20L));
+    (*T01:var:*) (*T03:conflict:*) = (*T02:assertStatus:*)((*T03:HttpStatus:*).(*T03:CONFLICT:*), () (*T01:->:*) (*T03:service:*).(*T02:invite:*)((*T06:20L:*)));
 
-    assertEquals("Complete My Profile before inviting", conflict.getReason());
-    verify(enrollments, never()).save(any());
+    (*T02:assertEquals:*)((*T05:"Complete My Profile before inviting":*), (*T03:conflict:*).(*T02:getReason:*)());
+    (*T02:verify:*)(enrollments, (*T02:never:*)()).(*T02:save:*)((*T02:any:*)());
 }
 \end{lstlisting}
 
@@ -281,32 +281,32 @@ readable. The integration tests use database-generated IDs instead.
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentServiceUnitTests.java#L171-L196}{\code{EnrollmentServiceUnitTests.java}, lines 171--196}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=171]
-private Enrollment enrollment(long id, Teacher assignedTeacher, EnrollmentStatus status) {
-    Enrollment enrollment = new Enrollment();
-    enrollment.setId(id);
-    enrollment.setTeacher(assignedTeacher);
-    enrollment.setStudent(student);
-    enrollment.setRequestedBy(Role.STUDENT);
-    enrollment.setStatus(status);
-    return enrollment;
+\begin{lstlisting}[style=vsJava,firstnumber=171]
+(*T01:private:*) (*T00:Enrollment:*) (*T02:enrollment:*)((*T00:long:*) (*T03:id:*), (*T00:Teacher:*) (*T03:assignedTeacher:*), (*T00:EnrollmentStatus:*) (*T03:status:*)) {
+    (*T00:Enrollment:*) (*T03:enrollment:*) = (*T04:new:*) (*T02:Enrollment:*)();
+    (*T03:enrollment:*).(*T02:setId:*)(id);
+    (*T03:enrollment:*).(*T02:setTeacher:*)(assignedTeacher);
+    (*T03:enrollment:*).(*T02:setStudent:*)(student);
+    (*T03:enrollment:*).(*T02:setRequestedBy:*)((*T03:Role:*).(*T03:STUDENT:*));
+    (*T03:enrollment:*).(*T02:setStatus:*)(status);
+    (*T04:return:*) enrollment;
 }
 
-private static Account account(long id, String username, Role role) {
-    Account account = new Account();
-    account.setId(id);
-    account.setUsername(username);
-    account.setRole(role);
-    return account;
+(*T01:private:*) (*T01:static:*) (*T00:Account:*) (*T02:account:*)((*T00:long:*) (*T03:id:*), (*T00:String:*) (*T03:username:*), (*T00:Role:*) (*T03:role:*)) {
+    (*T00:Account:*) (*T03:account:*) = (*T04:new:*) (*T02:Account:*)();
+    (*T03:account:*).(*T02:setId:*)(id);
+    (*T03:account:*).(*T02:setUsername:*)(username);
+    (*T03:account:*).(*T02:setRole:*)(role);
+    (*T04:return:*) account;
 }
 
-private static Student student(long id, String name, Account account) {
-    Student student = new Student();
-    ReflectionTestUtils.setField(student, "id", id);
-    student.setName(name);
-    student.setRoll("00123");
-    student.setAccount(account);
-    return student;
+(*T01:private:*) (*T01:static:*) (*T00:Student:*) (*T02:student:*)((*T00:long:*) (*T03:id:*), (*T00:String:*) (*T03:name:*), (*T00:Account:*) (*T03:account:*)) {
+    (*T00:Student:*) (*T03:student:*) = (*T04:new:*) (*T02:Student:*)();
+    (*T03:ReflectionTestUtils:*).(*T02:setField:*)(student, (*T05:"id":*), id);
+    (*T03:student:*).(*T02:setName:*)(name);
+    (*T03:student:*).(*T02:setRoll:*)((*T05:"00123":*));
+    (*T03:student:*).(*T02:setAccount:*)(account);
+    (*T04:return:*) student;
 }
 \end{lstlisting}
 
@@ -332,18 +332,18 @@ To run just these six tests from Windows PowerShell with JDK 25 configured:
 \subsection{Start a real application context and use a test database}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L24-L35}{\code{EnrollmentPersistenceIT.java}, lines 24--35}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=24]
-@SpringBootTest
-@ActiveProfiles("integration")
-class EnrollmentPersistenceIT {
-    private static final String TEST_PASSWORD = "TestPass123!";
-    @Autowired private WebApplicationContext context;
-    @Autowired private JdbcTemplate db;
-    private MockMvc mvc;
+\begin{lstlisting}[style=vsJava,firstnumber=24]
+@(*T00:SpringBootTest:*)
+@(*T00:ActiveProfiles:*)((*T05:"integration":*))
+(*T01:class:*) (*T00:EnrollmentPersistenceIT:*) {
+    (*T01:private:*) (*T01:static:*) (*T01:final:*) (*T00:String:*) (*T03:TEST_PASSWORD:*) = (*T05:"TestPass123!":*);
+    @(*T00:Autowired:*) (*T01:private:*) (*T00:WebApplicationContext:*) (*T03:context:*);
+    @(*T00:Autowired:*) (*T01:private:*) (*T00:JdbcTemplate:*) (*T03:db:*);
+    (*T01:private:*) (*T00:MockMvc:*) (*T03:mvc:*);
 
-    @BeforeEach
-    void setUp() {
-        mvc = webAppContextSetup(context).apply(springSecurity()).build();
+    @(*T00:BeforeEach:*)
+    (*T00:void:*) (*T02:setUp:*)() {
+        mvc = (*T02:webAppContextSetup:*)(context).(*T02:apply:*)((*T02:springSecurity:*)()).(*T02:build:*)();
     }
 \end{lstlisting}
 
@@ -386,35 +386,35 @@ existing startup check and the three scenarios run in this phase.
 \subsection{Create fixtures through the API}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L98-L126}{\code{EnrollmentPersistenceIT.java}, lines 98--126}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=98]
-private Person createPerson(String collection, String name) throws Exception {
-    String username = testUsername();
-    String body = """
-            {"username":"%s","password":"%s","profile":{"name":"%s","roll":"00123","course":"SEPM"}}
-            """.formatted(username, TEST_PASSWORD, name);
-    mvc.perform(post("/api/" + collection).with(user("admin").roles("ADMIN")).with(csrf())
-                    .contentType("application/json").content(body))
-            .andExpect(status().isCreated());
-    String query = collection.equals("students")
-            ? "select s.id from students s join accounts a on s.account_id = a.id where a.username = ?"
-            : "select t.id from teachers t join accounts a on t.account_id = a.id where a.username = ?";
-    return new Person(db.queryForObject(query, Long.class, username), username);
+\begin{lstlisting}[style=vsJava,firstnumber=98]
+(*T01:private:*) (*T00:Person:*) (*T02:createPerson:*)((*T00:String:*) (*T03:collection:*), (*T00:String:*) (*T03:name:*)) (*T01:throws:*) (*T00:Exception:*) {
+    (*T00:String:*) (*T03:username:*) = (*T02:testUsername:*)();
+    (*T00:String:*) (*T03:body:*) = (*T05:""":*)
+(*T05:            {"username":"%s","password":"%s","profile":{"name":"%s","roll":"00123","course":"SEPM"}}:*)
+(*T05:            """:*).(*T02:formatted:*)(username, TEST_PASSWORD, name);
+    (*T03:mvc:*).(*T02:perform:*)((*T02:post:*)((*T05:"/api/":*) + collection).(*T02:with:*)((*T02:user:*)((*T05:"admin":*)).(*T02:roles:*)((*T05:"ADMIN":*))).(*T02:with:*)((*T02:csrf:*)())
+                    .(*T02:contentType:*)((*T05:"application/json":*)).(*T02:content:*)(body))
+            .(*T02:andExpect:*)((*T02:status:*)().(*T02:isCreated:*)());
+    (*T00:String:*) (*T03:query:*) = (*T03:collection:*).(*T02:equals:*)((*T05:"students":*))
+            (*T04:?:*) (*T05:"select s.id from students s join accounts a on s.account_id = a.id where a.username = ?":*)
+            (*T04:::*) (*T05:"select t.id from teachers t join accounts a on t.account_id = a.id where a.username = ?":*);
+    (*T04:return:*) (*T04:new:*) (*T02:Person:*)((*T03:db:*).(*T02:queryForObject:*)(query, (*T03:Long:*).(*T03:class:*), username), username);
 }
 
-private long apply(Person student, Person teacher) throws Exception {
-    mvc.perform(post("/api/enrollments/applications")
-                    .with(user(student.username()).roles("STUDENT")).with(csrf())
-                    .contentType("application/json")
-                    .content("{\"teacherId\":" + teacher.profileId() + "}"))
-            .andExpect(status().isCreated());
-    return db.queryForObject("select id from enrollments where student_id = ? and teacher_id = ?",
-            Long.class, student.profileId(), teacher.profileId());
+(*T01:private:*) (*T00:long:*) (*T02:apply:*)((*T00:Person:*) (*T03:student:*), (*T00:Person:*) (*T03:teacher:*)) (*T01:throws:*) (*T00:Exception:*) {
+    (*T03:mvc:*).(*T02:perform:*)((*T02:post:*)((*T05:"/api/enrollments/applications":*))
+                    .(*T02:with:*)((*T02:user:*)((*T03:student:*).(*T02:username:*)()).(*T02:roles:*)((*T05:"STUDENT":*))).(*T02:with:*)((*T02:csrf:*)())
+                    .(*T02:contentType:*)((*T05:"application/json":*))
+                    .(*T02:content:*)((*T05:"{:*)(*T08:\":*)(*T05:teacherId:*)(*T08:\":*)(*T05::":*) + (*T03:teacher:*).(*T02:profileId:*)() + (*T05:"}":*)))
+            .(*T02:andExpect:*)((*T02:status:*)().(*T02:isCreated:*)());
+    (*T04:return:*) (*T03:db:*).(*T02:queryForObject:*)((*T05:"select id from enrollments where student_id = ? and teacher_id = ?":*),
+            (*T03:Long:*).(*T03:class:*), (*T03:student:*).(*T02:profileId:*)(), (*T03:teacher:*).(*T02:profileId:*)());
 }
 
-private void accept(Person teacher, long id, int expectedStatus) throws Exception {
-    mvc.perform(post("/api/enrollments/{id}/accept", id)
-                    .with(user(teacher.username()).roles("TEACHER")).with(csrf()))
-            .andExpect(status().is(expectedStatus));
+(*T01:private:*) (*T00:void:*) (*T02:accept:*)((*T00:Person:*) (*T03:teacher:*), (*T00:long:*) (*T03:id:*), (*T00:int:*) (*T03:expectedStatus:*)) (*T01:throws:*) (*T00:Exception:*) {
+    (*T03:mvc:*).(*T02:perform:*)((*T02:post:*)((*T05:"/api/enrollments/{id}/accept":*), id)
+                    .(*T02:with:*)((*T02:user:*)((*T03:teacher:*).(*T02:username:*)()).(*T02:roles:*)((*T05:"TEACHER":*))).(*T02:with:*)((*T02:csrf:*)()))
+            .(*T02:andExpect:*)((*T02:status:*)().(*T02:is:*)(expectedStatus));
 }
 \end{lstlisting}
 
@@ -436,30 +436,30 @@ again against the same disposable database.
 \subsection{I1. A Student can transfer only after leaving the first course}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L37-L60}{\code{EnrollmentPersistenceIT.java}, lines 37--60}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=37]
-@Test
-void studentCanTransferOnlyAfterLeavingTheAcceptedCourse() throws Exception {
-    var student = createPerson("students", "Student");
-    var first = createPerson("teachers", "First Teacher");
-    var second = createPerson("teachers", "Second Teacher");
-    long firstRequest = apply(student, first);
-    long secondRequest = apply(student, second);
+\begin{lstlisting}[style=vsJava,firstnumber=37]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:studentCanTransferOnlyAfterLeavingTheAcceptedCourse:*)() (*T01:throws:*) (*T00:Exception:*) {
+    (*T01:var:*) (*T03:student:*) = (*T02:createPerson:*)((*T05:"students":*), (*T05:"Student":*));
+    (*T01:var:*) (*T03:first:*) = (*T02:createPerson:*)((*T05:"teachers":*), (*T05:"First Teacher":*));
+    (*T01:var:*) (*T03:second:*) = (*T02:createPerson:*)((*T05:"teachers":*), (*T05:"Second Teacher":*));
+    (*T00:long:*) (*T03:firstRequest:*) = (*T02:apply:*)(student, first);
+    (*T00:long:*) (*T03:secondRequest:*) = (*T02:apply:*)(student, second);
 
-    accept(first, firstRequest, 200);
-    accept(second, secondRequest, 409);
+    (*T02:accept:*)(first, firstRequest, (*T06:200:*));
+    (*T02:accept:*)(second, secondRequest, (*T06:409:*));
 
-    assertEquals("ACCEPTED", enrollmentStatus(firstRequest));
-    assertEquals("PENDING", enrollmentStatus(secondRequest));
+    (*T02:assertEquals:*)((*T05:"ACCEPTED":*), (*T02:enrollmentStatus:*)(firstRequest));
+    (*T02:assertEquals:*)((*T05:"PENDING":*), (*T02:enrollmentStatus:*)(secondRequest));
 
-    mvc.perform(delete("/api/enrollments/{id}", firstRequest)
-                    .with(user(student.username()).roles("STUDENT")).with(csrf()))
-            .andExpect(status().isNoContent());
-    accept(second, secondRequest, 200);
+    (*T03:mvc:*).(*T02:perform:*)((*T02:delete:*)((*T05:"/api/enrollments/{id}":*), firstRequest)
+                    .(*T02:with:*)((*T02:user:*)((*T03:student:*).(*T02:username:*)()).(*T02:roles:*)((*T05:"STUDENT":*))).(*T02:with:*)((*T02:csrf:*)()))
+            .(*T02:andExpect:*)((*T02:status:*)().(*T02:isNoContent:*)());
+    (*T02:accept:*)(second, secondRequest, (*T06:200:*));
 
-    assertEquals(0, count("select count(*) from enrollments where id = ?", firstRequest));
-    assertEquals("ACCEPTED", enrollmentStatus(secondRequest));
-    assertEquals(1, count("select count(*) from enrollments where student_id = ? and status = 'ACCEPTED'",
-            student.profileId()));
+    (*T02:assertEquals:*)((*T06:0:*), (*T02:count:*)((*T05:"select count(*) from enrollments where id = ?":*), firstRequest));
+    (*T02:assertEquals:*)((*T05:"ACCEPTED":*), (*T02:enrollmentStatus:*)(secondRequest));
+    (*T02:assertEquals:*)((*T06:1:*), (*T02:count:*)((*T05:"select count(*) from enrollments where student_id = ? and status = 'ACCEPTED'":*),
+            (*T03:student:*).(*T02:profileId:*)()));
 }
 \end{lstlisting}
 
@@ -485,20 +485,20 @@ the original course.
 \subsection{I2. A failed profile save rolls back the account}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L62-L75}{\code{EnrollmentPersistenceIT.java}, lines 62--75}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=62]
-@Test
-void teacherCreationRollsBackTheAccountWhenCourseIsMissing() throws Exception {
-    String username = testUsername();
-    String body = """
-            {"username":"%s","password":"%s","profile":{"name":"Test Teacher"}}
-            """.formatted(username, TEST_PASSWORD);
+\begin{lstlisting}[style=vsJava,firstnumber=62]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:teacherCreationRollsBackTheAccountWhenCourseIsMissing:*)() (*T01:throws:*) (*T00:Exception:*) {
+    (*T00:String:*) (*T03:username:*) = (*T02:testUsername:*)();
+    (*T00:String:*) (*T03:body:*) = (*T05:""":*)
+(*T05:            {"username":"%s","password":"%s","profile":{"name":"Test Teacher"}}:*)
+(*T05:            """:*).(*T02:formatted:*)(username, TEST_PASSWORD);
 
-    mvc.perform(post("/api/teachers").with(user("admin").roles("ADMIN")).with(csrf())
-                    .contentType("application/json").content(body))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Course is required"));
+    (*T03:mvc:*).(*T02:perform:*)((*T02:post:*)((*T05:"/api/teachers":*)).(*T02:with:*)((*T02:user:*)((*T05:"admin":*)).(*T02:roles:*)((*T05:"ADMIN":*))).(*T02:with:*)((*T02:csrf:*)())
+                    .(*T02:contentType:*)((*T05:"application/json":*)).(*T02:content:*)(body))
+            .(*T02:andExpect:*)((*T02:status:*)().(*T02:isBadRequest:*)())
+            .(*T02:andExpect:*)((*T02:jsonPath:*)((*T05:"$.message":*)).(*T02:value:*)((*T05:"Course is required":*)));
 
-    assertEquals(0, count("select count(*) from accounts where username = ?", username));
+    (*T02:assertEquals:*)((*T06:0:*), (*T02:count:*)((*T05:"select count(*) from accounts where username = ?":*), username));
 }
 \end{lstlisting}
 
@@ -526,26 +526,26 @@ behind. The query detects that partial write.
 \subsection{I3. Delete a Teacher and keep the Student's login usable}
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/test/java/com/example/fmschool/EnrollmentPersistenceIT.java#L77-L96}{\code{EnrollmentPersistenceIT.java}, lines 77--96}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=77]
-@Test
-void deletingATeacherRemovesTheEnrollmentButStudentCanStillSignIn() throws Exception {
-    var student = createPerson("students", "Student");
-    var teacher = createPerson("teachers", "Teacher");
-    long request = apply(student, teacher);
-    accept(teacher, request, 200);
-    assertEquals("ACCEPTED", enrollmentStatus(request));
+\begin{lstlisting}[style=vsJava,firstnumber=77]
+@(*T00:Test:*)
+(*T00:void:*) (*T02:deletingATeacherRemovesTheEnrollmentButStudentCanStillSignIn:*)() (*T01:throws:*) (*T00:Exception:*) {
+    (*T01:var:*) (*T03:student:*) = (*T02:createPerson:*)((*T05:"students":*), (*T05:"Student":*));
+    (*T01:var:*) (*T03:teacher:*) = (*T02:createPerson:*)((*T05:"teachers":*), (*T05:"Teacher":*));
+    (*T00:long:*) (*T03:request:*) = (*T02:apply:*)(student, teacher);
+    (*T02:accept:*)(teacher, request, (*T06:200:*));
+    (*T02:assertEquals:*)((*T05:"ACCEPTED":*), (*T02:enrollmentStatus:*)(request));
 
-    mvc.perform(delete("/api/teachers/{id}", teacher.profileId())
-                    .with(user("admin").roles("ADMIN")).with(csrf()))
-            .andExpect(status().isNoContent());
+    (*T03:mvc:*).(*T02:perform:*)((*T02:delete:*)((*T05:"/api/teachers/{id}":*), (*T03:teacher:*).(*T02:profileId:*)())
+                    .(*T02:with:*)((*T02:user:*)((*T05:"admin":*)).(*T02:roles:*)((*T05:"ADMIN":*))).(*T02:with:*)((*T02:csrf:*)()))
+            .(*T02:andExpect:*)((*T02:status:*)().(*T02:isNoContent:*)());
 
-    assertEquals(0, count("select count(*) from accounts where username = ?", teacher.username()));
-    assertEquals(0, count("select count(*) from teachers where id = ?", teacher.profileId()));
-    assertEquals(0, count("select count(*) from enrollments where id = ?", request));
-    assertEquals(1, count("select count(*) from students where id = ?", student.profileId()));
-    mvc.perform(formLogin("/login").user(student.username()).password(TEST_PASSWORD))
-            .andExpect(authenticated().withUsername(student.username()))
-            .andExpect(redirectedUrl("/me"));
+    (*T02:assertEquals:*)((*T06:0:*), (*T02:count:*)((*T05:"select count(*) from accounts where username = ?":*), (*T03:teacher:*).(*T02:username:*)()));
+    (*T02:assertEquals:*)((*T06:0:*), (*T02:count:*)((*T05:"select count(*) from teachers where id = ?":*), (*T03:teacher:*).(*T02:profileId:*)()));
+    (*T02:assertEquals:*)((*T06:0:*), (*T02:count:*)((*T05:"select count(*) from enrollments where id = ?":*), request));
+    (*T02:assertEquals:*)((*T06:1:*), (*T02:count:*)((*T05:"select count(*) from students where id = ?":*), (*T03:student:*).(*T02:profileId:*)()));
+    (*T03:mvc:*).(*T02:perform:*)((*T02:formLogin:*)((*T05:"/login":*)).(*T02:user:*)((*T03:student:*).(*T02:username:*)()).(*T02:password:*)(TEST_PASSWORD))
+            .(*T02:andExpect:*)((*T02:authenticated:*)().(*T02:withUsername:*)((*T03:student:*).(*T02:username:*)()))
+            .(*T02:andExpect:*)((*T02:redirectedUrl:*)((*T05:"/me":*)));
 }
 \end{lstlisting}
 

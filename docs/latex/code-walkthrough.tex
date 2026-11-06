@@ -10,11 +10,11 @@ profile. The controller turns that request into a call to the application servic
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/controller/StudentController.java#L31-L35}{\code{StudentController.java}, lines 31--35}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=31]
-@PostMapping
-public ResponseEntity<PeopleApiService.StudentView> create(@Valid @RequestBody CreatePersonRequest request) {
-    var created = people.createStudent(request);
-    return ResponseEntity.created(URI.create("/api/students/" + created.id())).body(created);
+\begin{lstlisting}[style=vsJava,firstnumber=31]
+@(*T00:PostMapping:*)
+(*T01:public:*) (*T00:ResponseEntity:*)<(*T00:PeopleApiService:*).(*T00:StudentView:*)> (*T02:create:*)(@(*T00:Valid:*) @(*T00:RequestBody:*) (*T00:CreatePersonRequest:*) (*T03:request:*)) {
+    (*T01:var:*) (*T03:created:*) = (*T03:people:*).(*T02:createStudent:*)(request);
+    (*T04:return:*) (*T03:ResponseEntity:*).(*T02:created:*)((*T03:URI:*).(*T02:create:*)((*T05:"/api/students/":*) + (*T03:created:*).(*T02:id:*)())).(*T02:body:*)(created);
 }
 \end{lstlisting}
 
@@ -33,22 +33,22 @@ the new Student profile by ID. The response body is the view object.
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/dto/CreatePersonRequest.java#L6-L11}{\code{CreatePersonRequest.java}, lines 6--11}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=6]
-public record CreatePersonRequest(
-        @NotBlank @Size(min = 3, max = 50)
-        @Pattern(regexp = "[a-zA-Z0-9._-]+") String username,
-        @NotBlank @Size(min = 8, max = 64) String password,
-        @NotNull @Valid ProfileForm profile) {
+\begin{lstlisting}[style=vsJava,firstnumber=6]
+(*T01:public:*) (*T01:record:*) (*T00:CreatePersonRequest:*)(
+        @(*T00:NotBlank:*) @(*T00:Size:*)(min = (*T06:3:*), max = (*T06:50:*))
+        @(*T00:Pattern:*)(regexp = (*T05:"[a-zA-Z0-9._-]+":*)) (*T00:String:*) username,
+        @(*T00:NotBlank:*) @(*T00:Size:*)(min = (*T06:8:*), max = (*T06:64:*)) (*T00:String:*) password,
+        @(*T00:NotNull:*) @(*T00:Valid:*) (*T00:ProfileForm:*) profile) {
 }
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/PeopleApiService.java#L48-L52}{\code{PeopleApiService.java}, lines 48--52}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=48]
-public StudentView createStudent(CreatePersonRequest request) {
-    Long accountId = createIdentity(request, Role.STUDENT);
-    profiles.updateManagedProfile(accountId, request.profile());
-    return studentView(students.findByAccountId(accountId).orElseThrow());
+\begin{lstlisting}[style=vsJava,firstnumber=48]
+(*T01:public:*) (*T00:StudentView:*) (*T02:createStudent:*)((*T00:CreatePersonRequest:*) (*T03:request:*)) {
+    (*T00:Long:*) (*T03:accountId:*) = (*T02:createIdentity:*)(request, (*T03:Role:*).(*T03:STUDENT:*));
+    (*T03:profiles:*).(*T02:updateManagedProfile:*)(accountId, (*T03:request:*).(*T02:profile:*)());
+    (*T04:return:*) (*T02:studentView:*)((*T03:students:*).(*T02:findByAccountId:*)(accountId).(*T02:orElseThrow:*)());
 }
 \end{lstlisting}
 
@@ -70,52 +70,52 @@ entity. The service decides which record to load and which fields to update.
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/entity/Student.java#L7-L27}{\code{Student.java}, lines 7--27}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=7]
-@Entity
-@Table(name = "students")
-public class Student {
+\begin{lstlisting}[style=vsJava,firstnumber=7]
+@(*T00:Entity:*)
+@(*T00:Table:*)(name = (*T05:"students":*))
+(*T01:public:*) (*T01:class:*) (*T00:Student:*) {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @(*T00:Id:*)
+    @(*T00:GeneratedValue:*)(strategy = (*T03:GenerationType:*).(*T03:IDENTITY:*))
+    (*T01:private:*) (*T00:Long:*) (*T03:id:*);
 
-    @Getter
-    @Setter
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", unique = true)
-    private Account account;
+    @(*T00:Getter:*)
+    @(*T00:Setter:*)
+    @(*T00:com:*).(*T03:fasterxml:*).(*T03:jackson:*).(*T03:annotation:*).(*T03:JsonIgnore:*)
+    @(*T00:OneToOne:*)(fetch = (*T03:FetchType:*).(*T03:LAZY:*))
+    @(*T00:JoinColumn:*)(name = (*T05:"account_id":*), unique = (*T01:true:*))
+    (*T01:private:*) (*T00:Account:*) (*T03:account:*);
 
-    @Setter
-    @Getter
-    private String name;
-    @Setter
-    @Getter
-    private String roll;
+    @(*T00:Setter:*)
+    @(*T00:Getter:*)
+    (*T01:private:*) (*T00:String:*) (*T03:name:*);
+    @(*T00:Setter:*)
+    @(*T00:Getter:*)
+    (*T01:private:*) (*T00:String:*) (*T03:roll:*);
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/repository/StudentRepository.java#L6-L13}{\code{StudentRepository.java}, lines 6--13}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=6]
-public interface StudentRepository extends JpaRepository<Student, Long> {
-    java.util.Optional<Student> findByAccountId(Long accountId);
+\begin{lstlisting}[style=vsJava,firstnumber=6]
+(*T01:public:*) (*T01:interface:*) (*T00:StudentRepository:*) (*T01:extends:*) (*T00:JpaRepository:*)<(*T00:Student:*), (*T00:Long:*)> {
+    (*T00:java:*).(*T00:util:*).(*T00:Optional:*)<(*T00:Student:*)> (*T02:findByAccountId:*)((*T00:Long:*) (*T03:accountId:*));
 
-    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
-    @org.springframework.data.jpa.repository.Query("select s from Student s where s.id = :id")
-    java.util.Optional<Student> findLockedById(
-            @org.springframework.data.repository.query.Param("id") Long id);
+    @(*T00:org.springframework.data.jpa.repository.Lock:*)((*T03:jakarta:*).(*T03:persistence:*).(*T03:LockModeType:*).(*T03:PESSIMISTIC_WRITE:*))
+    @(*T00:org.springframework.data.jpa.repository.Query:*)((*T05:"select s from Student s where s.id = :id":*))
+    (*T00:java:*).(*T00:util:*).(*T00:Optional:*)<(*T00:Student:*)> (*T02:findLockedById:*)(
+            @(*T00:org.springframework.data.repository.query.Param:*)((*T05:"id":*)) (*T00:Long:*) (*T03:id:*));
 }
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/StudentService.java#L43-L49}{\code{StudentService.java}, lines 43--49}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=43]
-@Transactional
-public void updateStudent(Long id, StudentForm form) {
-    Student student = getStudentById(id);
-    student.setName(form.getName());
-    student.setRoll(form.getRoll());
-    studentRepository.save(student);
+\begin{lstlisting}[style=vsJava,firstnumber=43]
+@(*T00:Transactional:*)
+(*T01:public:*) (*T00:void:*) (*T02:updateStudent:*)((*T00:Long:*) (*T03:id:*), (*T00:StudentForm:*) (*T03:form:*)) {
+    (*T00:Student:*) (*T03:student:*) = (*T02:getStudentById:*)(id);
+    (*T03:student:*).(*T02:setName:*)((*T03:form:*).(*T02:getName:*)());
+    (*T03:student:*).(*T02:setRoll:*)((*T03:form:*).(*T02:getRoll:*)());
+    (*T03:studentRepository:*).(*T02:save:*)(student);
 }
 \end{lstlisting}
 
@@ -143,33 +143,33 @@ chooses the landing page.
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/config/SecurityConfig.java#L22-L49}{\code{SecurityConfig.java}, lines 22--49}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=22]
-@Bean
-public PasswordEncoder passwordEncoder() {
-    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+\begin{lstlisting}[style=vsJava,firstnumber=22]
+@(*T00:Bean:*)
+(*T01:public:*) (*T00:PasswordEncoder:*) (*T02:passwordEncoder:*)() {
+    (*T04:return:*) (*T03:PasswordEncoderFactories:*).(*T02:createDelegatingPasswordEncoder:*)();
 }
 
-@Bean
-public UserDetailsService userDetailsService(AccountRepository accounts) {
-    return username -> {
-        var account = accounts.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Account not found"));
-        return User.withUsername(account.getUsername())
-                .password(account.getPasswordHash())
-                .roles(account.getRole().name())
-                .build();
+@(*T00:Bean:*)
+(*T01:public:*) (*T00:UserDetailsService:*) (*T02:userDetailsService:*)((*T00:AccountRepository:*) (*T03:accounts:*)) {
+    (*T04:return:*) username (*T01:->:*) {
+        (*T01:var:*) (*T03:account:*) = (*T03:accounts:*).(*T02:findByUsername:*)(username)
+                .(*T02:orElseThrow:*)(() (*T01:->:*) (*T04:new:*) (*T02:UsernameNotFoundException:*)((*T05:"Account not found":*)));
+        (*T04:return:*) (*T03:User:*).(*T02:withUsername:*)((*T03:account:*).(*T02:getUsername:*)())
+                .(*T02:password:*)((*T03:account:*).(*T02:getPasswordHash:*)())
+                .(*T02:roles:*)((*T03:account:*).(*T02:getRole:*)().(*T02:name:*)())
+                .(*T02:build:*)();
     };
 }
 
-@Bean
-public AuthenticationSuccessHandler roleLoginSuccessHandler() {
-    return (request, response, authentication) -> {
-        boolean admin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        var handler = new SavedRequestAwareAuthenticationSuccessHandler();
-        handler.setAlwaysUseDefaultTargetUrl(true);
-        handler.setDefaultTargetUrl(admin ? "/" : "/me");
-        handler.onAuthenticationSuccess(request, response, authentication);
+@(*T00:Bean:*)
+(*T01:public:*) (*T00:AuthenticationSuccessHandler:*) (*T02:roleLoginSuccessHandler:*)() {
+    (*T04:return:*) (request, response, authentication) (*T01:->:*) {
+        (*T00:boolean:*) (*T03:admin:*) = (*T03:authentication:*).(*T02:getAuthorities:*)().(*T02:stream:*)()
+                .(*T02:anyMatch:*)(a (*T01:->:*) (*T03:a:*).(*T02:getAuthority:*)().(*T02:equals:*)((*T05:"ROLE_ADMIN":*)));
+        (*T01:var:*) (*T03:handler:*) = (*T04:new:*) (*T02:SavedRequestAwareAuthenticationSuccessHandler:*)();
+        (*T03:handler:*).(*T02:setAlwaysUseDefaultTargetUrl:*)((*T01:true:*));
+        (*T03:handler:*).(*T02:setDefaultTargetUrl:*)(admin (*T04:?:*) (*T05:"/":*) (*T04:::*) (*T05:"/me":*));
+        (*T03:handler:*).(*T02:onAuthenticationSuccess:*)(request, response, authentication);
     };
 }
 \end{lstlisting}
@@ -199,42 +199,42 @@ The general web chain has order 2.
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/config/SecurityConfig.java#L51-L86}{\code{SecurityConfig.java}, lines 51--86}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=51]
-@Bean
-@Order(2)
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    return http
-            .authorizeHttpRequests(auth -> auth
-                    .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
-                    .requestMatchers("/login", "/signup", "/signup/student", "/signup/teacher",
-                            "/css/**", "/favicon.ico").permitAll()
-                    .requestMatchers("/students", "/students/**",
-                            "/api/students", "/api/students/**",
-                            "/admin", "/admin/**").hasRole("ADMIN")
-                    .anyRequest().authenticated())
-            .formLogin(form -> form.loginPage("/login")
-                    .successHandler(roleLoginSuccessHandler()).permitAll())
-            .httpBasic(Customizer.withDefaults())
-            .logout(logout -> logout.logoutSuccessUrl("/login?logout"))
-            .build();
+\begin{lstlisting}[style=vsJava,firstnumber=51]
+@(*T00:Bean:*)
+@(*T00:Order:*)((*T06:2:*))
+(*T01:public:*) (*T00:SecurityFilterChain:*) (*T02:securityFilterChain:*)((*T00:HttpSecurity:*) (*T03:http:*)) (*T01:throws:*) (*T00:Exception:*) {
+    (*T04:return:*) http
+            .(*T02:authorizeHttpRequests:*)(auth (*T01:->:*) auth
+                    .(*T02:dispatcherTypeMatchers:*)((*T03:DispatcherType:*).(*T03:ERROR:*), (*T03:DispatcherType:*).(*T03:FORWARD:*)).(*T02:permitAll:*)()
+                    .(*T02:requestMatchers:*)((*T05:"/login":*), (*T05:"/signup":*), (*T05:"/signup/student":*), (*T05:"/signup/teacher":*),
+                            (*T05:"/css/**":*), (*T05:"/favicon.ico":*)).(*T02:permitAll:*)()
+                    .(*T02:requestMatchers:*)((*T05:"/students":*), (*T05:"/students/**":*),
+                            (*T05:"/api/students":*), (*T05:"/api/students/**":*),
+                            (*T05:"/admin":*), (*T05:"/admin/**":*)).(*T02:hasRole:*)((*T05:"ADMIN":*))
+                    .(*T02:anyRequest:*)().(*T02:authenticated:*)())
+            .(*T02:formLogin:*)(form (*T01:->:*) (*T03:form:*).(*T02:loginPage:*)((*T05:"/login":*))
+                    .(*T02:successHandler:*)((*T02:roleLoginSuccessHandler:*)()).(*T02:permitAll:*)())
+            .(*T02:httpBasic:*)((*T03:Customizer:*).(*T02:withDefaults:*)())
+            .(*T02:logout:*)(logout (*T01:->:*) (*T03:logout:*).(*T02:logoutSuccessUrl:*)((*T05:"/login?logout":*)))
+            .(*T02:build:*)();
 }
 
-@Bean
-@Order(1)
-public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
-    return http.securityMatcher("/api/**")
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/students", "/api/students/**",
-                            "/api/teachers", "/api/teachers/**").hasRole("ADMIN")
-                    .anyRequest().authenticated())
-            .httpBasic(basic -> basic.authenticationEntryPoint((request, response, exception) ->
-                    apiError(response, 401, "Authentication required")))
-            .exceptionHandling(errors -> errors
-                    .authenticationEntryPoint((request, response, exception) ->
-                            apiError(response, 401, "Authentication required"))
-                    .accessDeniedHandler((request, response, exception) ->
-                            apiError(response, 403, "Access denied or missing CSRF token")))
-            .build();
+@(*T00:Bean:*)
+@(*T00:Order:*)((*T06:1:*))
+(*T01:public:*) (*T00:SecurityFilterChain:*) (*T02:apiFilterChain:*)((*T00:HttpSecurity:*) (*T03:http:*)) (*T01:throws:*) (*T00:Exception:*) {
+    (*T04:return:*) (*T03:http:*).(*T02:securityMatcher:*)((*T05:"/api/**":*))
+            .(*T02:authorizeHttpRequests:*)(auth (*T01:->:*) auth
+                    .(*T02:requestMatchers:*)((*T05:"/api/students":*), (*T05:"/api/students/**":*),
+                            (*T05:"/api/teachers":*), (*T05:"/api/teachers/**":*)).(*T02:hasRole:*)((*T05:"ADMIN":*))
+                    .(*T02:anyRequest:*)().(*T02:authenticated:*)())
+            .(*T02:httpBasic:*)(basic (*T01:->:*) (*T03:basic:*).(*T02:authenticationEntryPoint:*)((request, response, exception) (*T01:->:*)
+                    (*T02:apiError:*)(response, (*T06:401:*), (*T05:"Authentication required":*))))
+            .(*T02:exceptionHandling:*)(errors (*T01:->:*) errors
+                    .(*T02:authenticationEntryPoint:*)((request, response, exception) (*T01:->:*)
+                            (*T02:apiError:*)(response, (*T06:401:*), (*T05:"Authentication required":*)))
+                    .(*T02:accessDeniedHandler:*)((request, response, exception) (*T01:->:*)
+                            (*T02:apiError:*)(response, (*T06:403:*), (*T05:"Access denied or missing CSRF token":*))))
+            .(*T02:build:*)();
 }
 \end{lstlisting}
 
@@ -261,46 +261,46 @@ the recipient. A rejected pair can reopen through the shared \code{request} meth
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/EnrollmentService.java#L105-L121}{\code{EnrollmentService.java}, lines 105--121}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=105]
-@Transactional
-public void respond(Long id, boolean accept) {
-    Account actor = currentAccount();
-    Enrollment enrollment = enrollment(id);
-    // Check who may act before exposing the current request state.
-    if (actor.getRole() != Role.ADMIN && !isRecipient(enrollment, actor)) {
-        throw forbidden();
+\begin{lstlisting}[style=vsJava,firstnumber=105]
+@(*T00:Transactional:*)
+(*T01:public:*) (*T00:void:*) (*T02:respond:*)((*T00:Long:*) (*T03:id:*), (*T00:boolean:*) (*T03:accept:*)) {
+    (*T00:Account:*) (*T03:actor:*) = (*T02:currentAccount:*)();
+    (*T00:Enrollment:*) (*T03:enrollment:*) = (*T02:enrollment:*)(id);
+    (*T07:// Check who may act before exposing the current request state.:*)
+    (*T04:if:*) ((*T03:actor:*).(*T02:getRole:*)() != (*T03:Role:*).(*T03:ADMIN:*) && !(*T02:isRecipient:*)(enrollment, actor)) {
+        (*T04:throw:*) (*T02:forbidden:*)();
     }
-    if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
-        throw conflict("Only pending requests can be accepted or rejected");
+    (*T04:if:*) ((*T03:enrollment:*).(*T02:getStatus:*)() != (*T03:EnrollmentStatus:*).(*T03:PENDING:*)) {
+        (*T04:throw:*) (*T02:conflict:*)((*T05:"Only pending requests can be accepted or rejected":*));
     }
-    if (accept) {
-        requireAvailable(enrollment.getStudent().getId(), enrollment.getTeacher().getId());
+    (*T04:if:*) (accept) {
+        (*T02:requireAvailable:*)((*T03:enrollment:*).(*T02:getStudent:*)().(*T02:getId:*)(), (*T03:enrollment:*).(*T02:getTeacher:*)().(*T02:getId:*)());
     }
-    enrollment.setStatus(accept ? EnrollmentStatus.ACCEPTED : EnrollmentStatus.REJECTED);
-    enrollments.save(enrollment);
+    (*T03:enrollment:*).(*T02:setStatus:*)(accept (*T04:?:*) (*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*) (*T04:::*) (*T03:EnrollmentStatus:*).(*T03:REJECTED:*));
+    (*T03:enrollments:*).(*T02:save:*)(enrollment);
 }
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/EnrollmentService.java#L136-L153}{\code{EnrollmentService.java}, lines 136--153}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=136]
-private void request(Teacher teacher, Student student, Role sender) {
-    student = lockStudent(student.getId());
-    requireAvailable(student.getId(), teacher.getId());
-    Enrollment enrollment = enrollments.findLockedPair(teacher.getId(), student.getId())
-            .orElseGet(Enrollment::new);
-    if (enrollment.getStatus() == EnrollmentStatus.ACCEPTED) {
-        throw conflict("This Student is already associated with this Teacher");
+\begin{lstlisting}[style=vsJava,firstnumber=136]
+(*T01:private:*) (*T00:void:*) (*T02:request:*)((*T00:Teacher:*) (*T03:teacher:*), (*T00:Student:*) (*T03:student:*), (*T00:Role:*) (*T03:sender:*)) {
+    student = (*T02:lockStudent:*)((*T03:student:*).(*T02:getId:*)());
+    (*T02:requireAvailable:*)((*T03:student:*).(*T02:getId:*)(), (*T03:teacher:*).(*T02:getId:*)());
+    (*T00:Enrollment:*) (*T03:enrollment:*) = (*T03:enrollments:*).(*T02:findLockedPair:*)((*T03:teacher:*).(*T02:getId:*)(), (*T03:student:*).(*T02:getId:*)())
+            .(*T02:orElseGet:*)(Enrollment(*T04:::new:*));
+    (*T04:if:*) ((*T03:enrollment:*).(*T02:getStatus:*)() == (*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*)) {
+        (*T04:throw:*) (*T02:conflict:*)((*T05:"This Student is already associated with this Teacher":*));
     }
-    if (enrollment.getStatus() == EnrollmentStatus.PENDING) {
-        throw conflict("A request is already pending; its recipient must respond");
+    (*T04:if:*) ((*T03:enrollment:*).(*T02:getStatus:*)() == (*T03:EnrollmentStatus:*).(*T03:PENDING:*)) {
+        (*T04:throw:*) (*T02:conflict:*)((*T05:"A request is already pending; its recipient must respond":*));
     }
-    // A rejected pair can apply/invite again, without duplicating the association.
-    enrollment.setTeacher(teacher);
-    enrollment.setStudent(student);
-    enrollment.setRequestedBy(sender);
-    enrollment.setStatus(EnrollmentStatus.PENDING);
-    enrollments.save(enrollment);
+    (*T07:// A rejected pair can apply/invite again, without duplicating the association.:*)
+    (*T03:enrollment:*).(*T02:setTeacher:*)(teacher);
+    (*T03:enrollment:*).(*T02:setStudent:*)(student);
+    (*T03:enrollment:*).(*T02:setRequestedBy:*)(sender);
+    (*T03:enrollment:*).(*T02:setStatus:*)((*T03:EnrollmentStatus:*).(*T03:PENDING:*));
+    (*T03:enrollments:*).(*T02:save:*)(enrollment);
 }
 \end{lstlisting}
 
@@ -330,27 +330,27 @@ load that relationship before writing either record.
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/EnrollmentService.java#L204-L225}{\code{EnrollmentService.java}, lines 204--225}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=204]
-@Transactional
-@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-public void updateEnrolledStudent(Long id, @Valid EnrolledStudentForm form) {
-    Enrollment enrollment = enrollment(id);
-    requireEditor(enrollment, currentAccount());
-    Student student = enrollment.getStudent();
-    student.setName(form.getName());
-    student.setRoll(form.getRoll());
-    enrollment.setMarks(form.getMarks());
-    students.save(student);
-    enrollments.save(enrollment);
-    // Account username/password/role are deliberately untouched.
+\begin{lstlisting}[style=vsJava,firstnumber=204]
+@(*T00:Transactional:*)
+@(*T00:PreAuthorize:*)((*T05:"hasAnyRole('TEACHER', 'ADMIN')":*))
+(*T01:public:*) (*T00:void:*) (*T02:updateEnrolledStudent:*)((*T00:Long:*) (*T03:id:*), @(*T00:Valid:*) (*T00:EnrolledStudentForm:*) (*T03:form:*)) {
+    (*T00:Enrollment:*) (*T03:enrollment:*) = (*T02:enrollment:*)(id);
+    (*T02:requireEditor:*)(enrollment, (*T02:currentAccount:*)());
+    (*T00:Student:*) (*T03:student:*) = (*T03:enrollment:*).(*T02:getStudent:*)();
+    (*T03:student:*).(*T02:setName:*)((*T03:form:*).(*T02:getName:*)());
+    (*T03:student:*).(*T02:setRoll:*)((*T03:form:*).(*T02:getRoll:*)());
+    (*T03:enrollment:*).(*T02:setMarks:*)((*T03:form:*).(*T02:getMarks:*)());
+    (*T03:students:*).(*T02:save:*)(student);
+    (*T03:enrollments:*).(*T02:save:*)(enrollment);
+    (*T07:// Account username/password/role are deliberately untouched.:*)
 }
 
-private void requireEditor(Enrollment enrollment, Account actor) {
-    if (enrollment.getStatus() != EnrollmentStatus.ACCEPTED
-            || (actor.getRole() != Role.ADMIN
-                && !(actor.getRole() == Role.TEACHER
-                    && Objects.equals(enrollment.getTeacher().getAccount().getId(), actor.getId())))) {
-        throw forbidden();
+(*T01:private:*) (*T00:void:*) (*T02:requireEditor:*)((*T00:Enrollment:*) (*T03:enrollment:*), (*T00:Account:*) (*T03:actor:*)) {
+    (*T04:if:*) ((*T03:enrollment:*).(*T02:getStatus:*)() != (*T03:EnrollmentStatus:*).(*T03:ACCEPTED:*)
+            || ((*T03:actor:*).(*T02:getRole:*)() != (*T03:Role:*).(*T03:ADMIN:*)
+                && !((*T03:actor:*).(*T02:getRole:*)() == (*T03:Role:*).(*T03:TEACHER:*)
+                    && (*T03:Objects:*).(*T02:equals:*)((*T03:enrollment:*).(*T02:getTeacher:*)().(*T02:getAccount:*)().(*T02:getId:*)(), (*T03:actor:*).(*T02:getId:*)())))) {
+        (*T04:throw:*) (*T02:forbidden:*)();
     }
 }
 \end{lstlisting}
@@ -390,47 +390,47 @@ identity first and profile creation fills in the role-specific record afterward.
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/PeopleApiService.java#L13-L16}{\code{PeopleApiService.java}, lines 13--16}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=13]
-@Service
-@PreAuthorize("hasRole('ADMIN')")
-@Transactional
-public class PeopleApiService {
+\begin{lstlisting}[style=vsJava,firstnumber=13]
+@(*T00:Service:*)
+@(*T00:PreAuthorize:*)((*T05:"hasRole('ADMIN')":*))
+@(*T00:Transactional:*)
+(*T01:public:*) (*T01:class:*) (*T00:PeopleApiService:*) {
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/PeopleApiService.java#L78-L82}{\code{PeopleApiService.java}, lines 78--82}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=78]
-public TeacherView createTeacher(CreatePersonRequest request) {
-    Long accountId = createIdentity(request, Role.TEACHER);
-    profiles.updateManagedProfile(accountId, request.profile());
-    return teacherView(teachers.findByAccountId(accountId).orElseThrow());
+\begin{lstlisting}[style=vsJava,firstnumber=78]
+(*T01:public:*) (*T00:TeacherView:*) (*T02:createTeacher:*)((*T00:CreatePersonRequest:*) (*T03:request:*)) {
+    (*T00:Long:*) (*T03:accountId:*) = (*T02:createIdentity:*)(request, (*T03:Role:*).(*T03:TEACHER:*));
+    (*T03:profiles:*).(*T02:updateManagedProfile:*)(accountId, (*T03:request:*).(*T02:profile:*)());
+    (*T04:return:*) (*T02:teacherView:*)((*T03:teachers:*).(*T02:findByAccountId:*)(accountId).(*T02:orElseThrow:*)());
 }
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/ProfileService.java#L142-L150}{\code{ProfileService.java}, lines 142--150}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=142]
-} else if (account.getRole() == Role.TEACHER) {
-    if (form.getCourse() == null || form.getCourse().isBlank()) {
-        throw new IllegalArgumentException("Course is required");
+\begin{lstlisting}[style=vsJava,firstnumber=142]
+} (*T04:else:*) (*T04:if:*) ((*T03:account:*).(*T02:getRole:*)() == (*T03:Role:*).(*T03:TEACHER:*)) {
+    (*T04:if:*) ((*T03:form:*).(*T02:getCourse:*)() == (*T01:null:*) || (*T03:form:*).(*T02:getCourse:*)().(*T02:isBlank:*)()) {
+        (*T04:throw:*) (*T04:new:*) (*T02:IllegalArgumentException:*)((*T05:"Course is required":*));
     }
-    Teacher teacher = teachers.findByAccountId(account.getId()).orElseGet(Teacher::new);
-    teacher.setAccount(account);
-    teacher.setName(form.getName());
-    teacher.setCourse(form.getCourse());
-    teachers.save(teacher);
+    (*T00:Teacher:*) (*T03:teacher:*) = (*T03:teachers:*).(*T02:findByAccountId:*)((*T03:account:*).(*T02:getId:*)()).(*T02:orElseGet:*)(Teacher(*T04:::new:*));
+    (*T03:teacher:*).(*T02:setAccount:*)(account);
+    (*T03:teacher:*).(*T02:setName:*)((*T03:form:*).(*T02:getName:*)());
+    (*T03:teacher:*).(*T02:setCourse:*)((*T03:form:*).(*T02:getCourse:*)());
+    (*T03:teachers:*).(*T02:save:*)(teacher);
 \end{lstlisting}
 
 \par\smallskip
 {\small\href{\repo/blob/5d22aed7f6d4ef1e4c0b0c0dabf2962ba4b47608/src/main/java/com/example/fmschool/service/ProfileService.java#L156-L163}{\code{ProfileService.java}, lines 156--163}}
-\begin{lstlisting}[style=source,language=FMJava,firstnumber=156]
-private void delete(Account account) {
-    students.findByAccountId(account.getId()).ifPresent(students::delete);
-    teachers.findByAccountId(account.getId()).ifPresent(teachers::delete);
-    // Remove dependent records before the account, preserving unrelated people.
-    students.flush();
-    teachers.flush();
-    accounts.delete(account);
+\begin{lstlisting}[style=vsJava,firstnumber=156]
+(*T01:private:*) (*T00:void:*) (*T02:delete:*)((*T00:Account:*) (*T03:account:*)) {
+    (*T03:students:*).(*T02:findByAccountId:*)((*T03:account:*).(*T02:getId:*)()).(*T02:ifPresent:*)(students(*T04::::*)delete);
+    (*T03:teachers:*).(*T02:findByAccountId:*)((*T03:account:*).(*T02:getId:*)()).(*T02:ifPresent:*)(teachers(*T04::::*)delete);
+    (*T07:// Remove dependent records before the account, preserving unrelated people.:*)
+    (*T03:students:*).(*T02:flush:*)();
+    (*T03:teachers:*).(*T02:flush:*)();
+    (*T03:accounts:*).(*T02:delete:*)(account);
 }
 \end{lstlisting}
 
