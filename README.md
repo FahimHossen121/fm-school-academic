@@ -73,6 +73,7 @@ credentials.
 
 ## Documentation
 
+- [Short project guide (PDF)](docs/latex/FM%20School%20Guide.pdf) and [editable LaTeX source](docs/latex/main.tex)
 - [Fresh-PC and fast runner guide](docs/Run%20on%20a%20Fresh%20PC.md)
 - [Complete project guide](docs/FM%20School%20-%20Complete%20Project%20Guide.md)
 - [JSON API guide](docs/JSON%20API%20Guide.md)

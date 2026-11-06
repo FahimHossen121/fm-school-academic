@@ -1,0 +1,393 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=19mm,headheight=15pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{xcolor,booktabs,tabularx,array,enumitem,fancyhdr,fancyvrb,tikz,hyperref}
+\usetikzlibrary{arrows.meta,positioning}
+\definecolor{ink}{HTML}{183D4B}
+\definecolor{accent}{HTML}{375E6A}
+\definecolor{pale}{HTML}{F1F4F5}
+\hypersetup{colorlinks=true,linkcolor=ink,urlcolor=ink,pdftitle={FM School Project Guide}}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small FM School}
+\fancyhead[R]{\small SEPM Lab \enspace\textbar\enspace Project Guide}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{0pt}{-15pt}{7pt}{\normalfont\Large\bfseries\color{ink}}}
+\renewcommand\subsection{\@startsection{subsection}{2}{0pt}{-10pt}{5pt}{\normalfont\large\bfseries\color{ink}}}
+\makeatother
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setlength{\emergencystretch}{20pt}
+\setlist{nosep,leftmargin=1.6em,topsep=4pt,itemsep=3pt}
+\renewcommand{\arraystretch}{1.22}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\repo}{https://github.com/FahimHossen121/fm-school-academic}
+\DefineVerbatimEnvironment{lstlisting}{Verbatim}{fontsize=\small,frame=single,framesep=2mm,rulecolor=\color{accent}}
+\widowpenalty=10000
+\clubpenalty=10000
+\begin{document}
+{\Huge\bfseries\color{ink} FM School}\par
+{\large Project guide for the SEPM lab}\par
+Run the application, follow the code, and explain the tests in the viva.
+\href{\repo}{GitHub repository}\par
+\smallskip
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\hyperref[sec:setup]{1. Set up and run} & \hyperref[sec:architecture]{2. Understand the code} \\
+\hyperref[sec:demo]{3. Demo the main workflows} & \hyperref[sec:api]{4. Use the JSON API} \\
+\hyperref[sec:tests]{5. Know the nine new tests} & \hyperref[sec:ci]{6. Run CI and make changes} \\
+\hyperref[sec:viva]{7. Prepare for the viva} & \\
+\end{tabularx}
+
+\section{Set up and run}\label{sec:setup}
+FM School manages Teacher and Student accounts, profiles, course requests, and marks.
+The Admin manages records. Teachers and Students work with their own profiles and
+enrollments. The project uses Java 25, Spring Boot, Maven, and PostgreSQL 18.6.
+
+\subsection{Start on a Windows lab PC}
+Install Git, JDK 25, Docker Desktop, and IntelliJ. Start Docker Desktop and wait
+for its engine. Select JDK 25 for the IntelliJ project and Maven importer.
+For terminal commands, set \code{JAVA_HOME} to the JDK directory and check
+\code{java -version} and \verb|.\mvnw.cmd -version|.
+\begin{lstlisting}
+git clone https://github.com/FahimHossen121/fm-school-academic.git
+cd fm-school-academic
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\run-demo.ps1
+\end{lstlisting}
+The runner starts PostgreSQL and Spring Boot, applies the demo seed after startup,
+and opens \href{http://localhost:8080/login}{localhost:8080/login}.
+The seed resets the local Admin password to the demo value. Use it on a lab database.
+
+\begin{tabularx}{\linewidth}{@{}l l Y@{}}
+\toprule
+Role & Username / password & First page \\
+\midrule
+Admin & \code{admin} / \code{12345678} & Admin home \\
+Teacher & \code{teacher2} / \code{teacher2} & My Profile \\
+Student & \code{student2} / \code{student2} & My Profile \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Run the steps manually if needed}
+Start the database with \code{docker compose up -d postgres}. In IntelliJ, run
+\code{FmSchoolApplication} and wait for Liquibase to finish. Load the demo rows
+from a second terminal and refresh the login page.
+\begin{lstlisting}
+Get-Content .\demo\seed-demo-data.sql |
+  docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U myuser -d fm_school_db
+\end{lstlisting}
+Stop Spring Boot with the IDE Stop button if you started it there. If you used
+the runner, identify its Java process before stopping it. \code{docker compose stop}
+stops PostgreSQL and keeps the volume. GitHub stores code and migrations.
+Use the seed to recreate demo data on another PC.
+
+\clearpage
+\section{Understand the code}\label{sec:architecture}
+A web request enters Spring Security, which checks the user's identity and
+route permissions. The controller reads the request. The service applies
+business rules. The repository reads or writes the database. The controller
+returns an HTML view or JSON.
+
+\begin{center}
+\begin{tikzpicture}[node distance=5mm,
+  box/.style={draw=accent,fill=pale,rounded corners=2pt,inner sep=6pt,font=\small},
+  arrow/.style={-{Latex[length=2mm]},thick,draw=accent}]
+\node[box] (browser) {Browser};
+\node[box,right=of browser] (security) {Security};
+\node[box,right=of security] (controller) {Controller};
+\node[box,right=of controller] (service) {Service};
+\node[box,right=of service] (repository) {Repository};
+\node[box,right=of repository] (db) {PostgreSQL};
+\draw[arrow] (browser) -- (security);
+\draw[arrow] (security) -- (controller);
+\draw[arrow] (controller) -- (service);
+\draw[arrow] (service) -- (repository);
+\draw[arrow] (repository) -- (db);
+\end{tikzpicture}
+\end{center}
+
+\subsection{Find the right file}
+Java classes use the package \code{com.example.fmschool}. In IntelliJ, open
+files by name with Ctrl+Shift+N.
+
+\begin{tabularx}{\linewidth}{@{}p{.38\linewidth}Y@{}}
+\toprule
+File or package & Responsibility \\
+\midrule
+\code{SecurityConfig.java} & Form login, API authentication, role rules, and redirects. \\
+\code{StudentController.java} & Admin Student CRUD endpoints and HTTP responses. \\
+\code{EnrollmentApiController.java} & API requests to apply, invite, respond, remove, and edit. \\
+\code{EnrollmentService.java} & Recipient checks, one accepted course, and Teacher edit authority. \\
+\code{ProfileService.java} & Own profile, Admin edits, and account/profile deletion. \\
+\code{PeopleApiService.java} & Admin account/profile changes and JSON response DTOs. \\
+\code{entity/} and \code{repository/} & Java representations of stored data and the interfaces that query them. \\
+\code{dto/} & Data shapes for requests and responses. Validation checks incoming fields. \\
+\code{templates/} & Thymeleaf HTML views under \code{src/main/resources/}. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{The four main tables}
+\begin{itemize}
+\item \textbf{Accounts} hold the username, role, and password hash.
+\item \textbf{Students} hold a name and roll number. \textbf{Teachers} hold a name
+and one course. Their account links connect profiles to login identities.
+\item \textbf{Enrollments} connect a Student and Teacher. They record who requested
+the link, its status, and optional marks. One Student can have several pending
+applications and at most one accepted course.
+\end{itemize}
+Liquibase creates and updates the schema. Its changelog defines the
+one-accepted-course constraint and the foreign-key rules for enrollment deletion.
+Hibernate validates the schema and maps entities to tables.
+
+\subsection{Follow a profile update}
+When a Student submits My Profile, the controller validates the form and calls
+\code{ProfileService}. The service looks up the signed-in account, then finds and
+saves that account's Student profile. The name and roll belong to the profile.
+The username and password hash belong to the account.
+
+\clearpage
+\section{Demo the main workflows}\label{sec:demo}
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+Role & Typical actions \\
+\midrule
+Admin & Manage Teacher and Student accounts. Directly associate a Student with a Teacher and manage requests. \\
+Teacher & Edit own profile, invite Students, respond to applications, and edit names, rolls, and marks for accepted Students. \\
+Student & Edit own profile, apply to Teachers, respond to invitations, and view own marks. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{A quick lab demonstration}
+\begin{enumerate}
+\item Sign in as \code{teacher2}. Find an accepted Student in the enrollment
+board, open the edit page, and enter a mark such as 85.50.
+\item Sign out and sign in as that Student. Check the mark on the enrollment
+board. Open My Profile to show how the signed-in identity selects the record.
+\item To show a pending request, use a new Student and Teacher. Complete both
+profiles, then apply as the Student. Sign in as the Teacher and accept. You can
+also send an invitation as the Teacher and respond as the Student.
+\item Sign in as Admin and open Manage Teachers or Manage Students. Show the
+management actions across accounts and profiles.
+\end{enumerate}
+The seed already enrolls the demo Students. Use a fresh Student account when
+demonstrating an application or invitation.
+
+\subsection{Rules to check while demonstrating}
+\begin{itemize}
+\item The recipient or Admin can accept or reject a pending request. A Teacher
+gains edit permission when their enrollment with the Student is accepted.
+\item A Student must leave the accepted course before accepting another.
+Removing an association leaves both accounts usable.
+\item Marks range from 0 to 100 with up to two decimal places. An empty mark
+means ungraded. A mark of zero is a grade.
+\item A Teacher can edit an accepted Student only through their own enrollment.
+Use another Teacher account to demonstrate the denial.
+\item Deleting a Teacher account removes the profile and its enrollment links.
+The affected Student accounts survive. Use disposable accounts for the demo.
+\end{itemize}
+
+\subsection{Troubleshoot the demo}
+\begin{tabularx}{\linewidth}{@{}p{.33\linewidth}Y@{}}
+\toprule
+Symptom & First check \\
+\midrule
+Database connection error & Run \code{docker compose ps}. Check Docker Desktop and the port mapping in \code{compose.yaml}. \\
+Wrong Java version & Check terminal \code{java -version} and IntelliJ's Maven JDK. \\
+Demo password rejected & Confirm the app started, then run the demo seed against the local lab database. \\
+Port 8080 in use & Identify the process using the port. The runner and IntelliJ can start separate Java processes. \\
+Styles look old & Rebuild and refresh. Rebuild Tailwind when changing its input or template classes. \\
+\bottomrule
+\end{tabularx}
+
+\clearpage
+\section{Use the JSON API}\label{sec:api}
+The HTML controllers render Thymeleaf pages. The API controllers return JSON
+using the same services and ownership rules. A DTO carries selected fields
+between the app and the client. Response DTOs leave password hashes out of JSON.
+
+\subsection{Authentication and writes}
+Use your browser session or HTTP Basic authentication in Postman. For POST, PUT,
+and DELETE, first call \code{GET /api/csrf}. Keep the session cookie and send the
+returned token using the returned \code{headerName}. CSRF protection verifies that
+a browser write came from a client that obtained the token for that session.
+
+\begin{tabularx}{\linewidth}{@{}p{.55\linewidth}Y@{}}
+\toprule
+Endpoint & Purpose \\
+\midrule
+\code{GET /api/session} & See the authenticated username and roles. \\
+\code{GET /api/csrf} & Obtain the token and header name. \\
+\code{GET}, \code{PUT}, \code{DELETE /api/me} & View, edit, or remove your own Teacher or Student profile and login as applicable. \\
+\code{/api/students} and \code{/api/teachers} & Admin lists and creates people. Add an ID to read, update, or delete one record. \\
+\code{GET /api/enrollments} & Read the role-filtered board. \\
+\code{POST /api/enrollments/applications} & Student applies with a \code{teacherId}. \\
+\code{POST /api/enrollments/invitations} & Teacher invites with a \code{studentId}. \\
+\code{POST /api/enrollments/associations} & Admin associates a Teacher and Student by profile IDs. \\
+\code{POST /api/enrollments/{id}/accept} & Recipient or Admin accepts. Use \code{/reject} to decline. \\
+\code{DELETE /api/enrollments/{id}} & Participant removes an accepted link. Admin can remove any link. \\
+\code{PUT /api/enrollments/{id}/student} & Associated Teacher or Admin edits Student details and marks on an accepted link. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{One request to show}
+As the associated Teacher, send this JSON to
+\code{PUT /api/enrollments/{id}/student}. The enrollment ID identifies the
+relationship. You can find it on the enrollment board.
+\begin{lstlisting}
+{"name":"Student Two","roll":"9000002","marks":85.50}
+\end{lstlisting}
+A successful write returns 200. Repeat the call as an unrelated Teacher and
+expect 403. When accepting a second course, expect 409 and check that the
+original enrollment still exists.
+
+\textbf{Status codes.}
+200 success, 201 created, 204 success without a body, 400 invalid input,
+401 authentication required, 403 permission or CSRF denied, 404 missing record,
+and 409 conflict with the current state.
+
+\clearpage
+\section{Know the nine new tests}\label{sec:tests}
+A unit test isolates one piece of logic. These six tests call \code{EnrollmentService}
+directly and use Mockito repositories. An integration test checks several parts
+working together. The three new integration tests use the full Spring application,
+MockMvc, Liquibase, and a separate PostgreSQL database. They read the stored results
+after HTTP requests complete.
+
+\subsection{Six unit tests}
+\begin{tabularx}{\linewidth}{@{}l p{.27\linewidth}Y@{}}
+\toprule
+& Scenario & What it proves \\
+\midrule
+U1 & Accept twice & The retry returns 409. The record stays accepted and no second save runs. \\
+U2 & Reverse a rejected request & A Teacher invites a Student whose application they rejected. The same row reopens and the Student becomes the recipient. \\
+U3 & Filter the invitation list & Students who already have a course or lack a linked account stay out of the picker. \\
+U4 & Keep pending history & An enrolled Student still sees pending rows, while the board offers no new Teachers to apply to. \\
+U5 & Clear an existing mark & Clearing 78.25 saves a null mark, which means ungraded. \\
+U6 & Invite without a profile & A Teacher login without a profile gets a conflict and no enrollment is written. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Three integration tests}
+\begin{enumerate}
+\item \textbf{Transfer courses.} Apply to two Teachers. Accept the first request,
+then attempt to accept the second. Check for 409 and confirm the second request
+stays pending in PostgreSQL. Remove the first enrollment, accept the second,
+and verify there is exactly one accepted row for the Student.
+\item \textbf{Roll back a failed creation.} Ask Admin to create a Teacher with
+valid account details and no course. The profile step returns 400. Look up the
+username in PostgreSQL and verify the earlier account insert was rolled back.
+\item \textbf{Delete a Teacher without losing a Student.} Create an accepted
+enrollment, delete the Teacher as Admin, and query the database. The Teacher
+account, profile, and enrollment are gone. The Student profile survives and the
+Student can still sign in with the original credentials.
+\end{enumerate}
+The existing application startup check also runs in the integration phase.
+
+\subsection{Explain the rollback test in the viva}
+The HTTP response tells the client the course is required. Querying the
+accounts table shows that the earlier insert was rolled back. A response
+assertion alone could pass even if an unused account were left in the database.
+
+\clearpage
+\section{Run CI and make changes}\label{sec:ci}
+
+\subsection{Run tests on your PC}
+Run unit and isolated web tests with \verb|.\mvnw.cmd test|. To run the integration
+tests too, start a disposable PostgreSQL container on port 55432. The demo
+database uses port 5432, so both can run independently.
+\begin{lstlisting}
+docker run -d --rm --name fm-school-lab-test `
+  -p 127.0.0.1:55432:5432 `
+  -e POSTGRES_DB=fm_school_test -e POSTGRES_USER=fm_school_test `
+  -e POSTGRES_PASSWORD=fm_school_test postgres:18.6
+docker exec fm-school-lab-test pg_isready -U fm_school_test -d fm_school_test
+\end{lstlisting}
+Once \code{pg_isready} reports that the database accepts connections, run the
+suite and stop the disposable container when finished.
+\begin{lstlisting}
+.\mvnw.cmd clean verify
+docker stop fm-school-lab-test
+\end{lstlisting}
+The integration profile points to this dedicated database. Maven Surefire
+runs \code{*Tests}. Maven Failsafe runs \code{*IT} during \code{verify}.
+Reports are in \code{target/surefire-reports} and \code{target/failsafe-reports}.
+
+\subsection{What GitHub Actions does}
+The workflow is \code{.github/workflows/tests.yml}. A push or pull request
+starts an Ubuntu job. GitHub starts a clean PostgreSQL service, waits for its
+health check, sets up Java 25, and executes \code{mvn verify}. Open the
+\href{\repo/actions}{Actions tab}, select FM School tests, then open the
+\code{verify} job to see the test totals and result.
+
+\subsection{Make a small requested change}
+Trace the feature from controller to service before editing. For a marks
+range change, check the form, input validation, database constraint, and
+boundary tests. Add a new Liquibase changeset when the stored schema changes.
+
+\begin{tabularx}{\linewidth}{@{}p{.28\linewidth}Y@{}}
+\toprule
+Change & Start here \\
+\midrule
+Page text or layout & Thymeleaf files in \code{src/main/resources/templates/}. \\
+Colors and spacing & Tailwind source in \code{src/main/resources/styles/}. Run \code{npm.cmd ci}, then \code{npm.cmd run css:build}. Commit generated CSS with the source change. \\
+Permission or workflow & \code{SecurityConfig} for route rules. The relevant service for record ownership and business rules. \\
+Database column & Entity and a new Liquibase changeset. Update DTOs, forms, and tests as needed. \\
+\bottomrule
+\end{tabularx}
+Pull changes before working on a different PC. After editing, run the tests
+and review \code{git diff}. Commit the specific files, push, and check the
+new Actions run.
+
+\clearpage
+\section{Prepare for the viva}\label{sec:viva}
+
+\subsection{How did you create the REST API?}
+Open \code{StudentController.java}. Show \code{@RestController},
+\code{@RequestMapping("/api/students")}, and \code{@GetMapping}. The GET method
+delegates to \code{PeopleApiService.students()}, which queries the repository and
+maps results to response DTOs. In the POST method, \code{@RequestBody} binds JSON,
+\code{@Valid} checks the request, and creation returns 201 with a Location header.
+
+\subsection{How did you use Docker?}
+Open \code{compose.yaml}. PostgreSQL 18.6 runs in Docker, and Spring Boot runs on
+the host through IntelliJ or Maven. Compose sets the database name and login,
+publishes 5432 to localhost, and attaches \code{postgres_data} to preserve data
+across ordinary container recreation. Show \code{docker compose ps}. Explain
+that the PostgreSQL driver connects Java to the database.
+
+\subsection{How did you implement Spring Data JPA?}
+Show \code{Student.java}, \code{StudentRepository.java}, then
+\code{StudentService.updateStudent()}. The entity maps Java fields to columns.
+The repository provides methods such as \code{findById} and \code{save}.
+The service loads a Student, changes its fields, and saves within a transaction.
+Hibernate handles the mapping. Liquibase manages changes to the schema.
+
+\subsection{How did you implement Spring Security?}
+Open \code{SecurityConfig.java}. Show the encoder, account lookup through
+\code{UserDetailsService}, and the web and API filter chains. A user first proves
+who they are. Route rules decide what their role may access. Open
+\code{EnrollmentService.requireEditor()} for the record-level check. A Teacher
+can edit the Student when the accepted enrollment belongs to that Teacher's
+account. The server applies this rule to direct API requests too.
+
+\subsection{What distinguishes the two test types?}
+In \code{EnrollmentServiceUnitTests.java}, Mockito supplies the repository
+responses and the test checks the service logic. In \code{EnrollmentPersistenceIT.java},
+a request passes through security, controller, service, and real database
+transactions. Show how the rollback test checks both the response and the
+absence of the account in PostgreSQL. Finish by showing the Actions run.
+
+\subsection{Original material}
+\begin{itemize}
+\item \href{\repo/blob/main/docs/FM\%20School\%20-\%20Complete\%20Project\%20Guide.md}{Full project guide and detailed viva notes}
+\item \href{\repo/blob/main/docs/Run\%20on\%20a\%20Fresh\%20PC.md}{Windows lab setup} and
+\href{\repo/blob/main/docs/Feature\%20Chunks.md}{feature walkthroughs}
+\item \href{\repo/blob/main/docs/JSON\%20API\%20Guide.md}{JSON API reference} and
+\href{\repo/blob/main/docs/Styling.md}{Tailwind workflow}
+\item \href{\repo/blob/main/docs/Lab\%20Report.md}{REST API, Spring Boot, and Docker lab report}
+\end{itemize}
+\end{document}

@@ -771,6 +771,7 @@ count may change as features are added:
 | SecurityRulesTests | Role and security boundaries |
 | ProfileOwnershipTests | Own versus managed profile access |
 | EnrollmentWorkflowTests | Requests, recipients, single course, Teacher authority and marks |
+| EnrollmentServiceUnitTests | Six isolated cases covering acceptance retries, request direction, eligibility and marks |
 | ApiContractTests | JSON statuses, validation, DTO fields and route behavior |
 | SignupServiceTests | Registration business rules and account/profile creation |
 | SignupWebTests | Signup routes, validation, fixed role and redirects |
@@ -778,13 +779,19 @@ count may change as features are added:
 In a terminal with JDK 25 configured:
 
 ```powershell
-.\mvnw.cmd '-Dtest=SecurityRulesTests,ProfileOwnershipTests,EnrollmentWorkflowTests,ApiContractTests,SignupServiceTests,SignupWebTests' test
+.\mvnw.cmd test
 ```
 
 If Maven Wrapper has an environment problem, use IntelliJ's bundled Maven:
 open the Maven tool window, choose **Execute Maven Goal**, and enter the same
-`-Dtest=... test` arguments. Alternatively run the selected test classes from
+`test` goal. Alternatively run the selected test classes from
 their gutter icons.
+
+Use `mvn verify` for the full suite. The integration tests need a dedicated PostgreSQL
+database on port 55432. The [short project guide](latex/FM%20School%20Guide.pdf)
+explains local database setup and GitHub Actions. `EnrollmentPersistenceIT`
+checks course transfer, rollback, and Teacher deletion. `FmSchoolApplicationIT`
+checks startup.
 
 Passing isolated tests does not replace testing the running UI/database. After editing, test the feature you changed and one permission boundary.
 
